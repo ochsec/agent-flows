@@ -4,7 +4,7 @@ Configuration settings for the Research Manager Workflow
 
 import os
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 # Default configuration
 DEFAULT_CONFIG = {
@@ -54,7 +54,7 @@ DEFAULT_CONFIG = {
 class WorkflowConfig:
     """Configuration manager for the research workflow"""
     
-    def __init__(self, config_dict: Dict[str, Any] = None):
+    def __init__(self, config_dict: Optional[Dict[str, Any]] = None):
         self.config = config_dict or DEFAULT_CONFIG.copy()
         self._validate_config()
     

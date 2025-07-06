@@ -212,9 +212,10 @@ specialized in discovering, collecting, and analyzing information related to spe
         }
         return json.dumps(mcp_config)
     
-    def execute_task(self, task: str) -> str:
+    def execute_task(self, task: str, mcp_config: Optional[str] = None) -> str:
         """Execute research task with Perplexity integration"""
-        mcp_config = self.create_mcp_config() if self.executor.perplexity_api_key else None
+        if mcp_config is None:
+            mcp_config = self.create_mcp_config() if self.executor.perplexity_api_key else None
         return super().execute_task(task, mcp_config)
 
 
@@ -332,7 +333,7 @@ class ResearchManagerWorkflow:
         self.identified_issues = []
         self.quality_checks = {}
     
-    def update_progress(self, step: str, summary: str, issues: List[str] = None):
+    def update_progress(self, step: str, summary: str, issues: Optional[List[str]] = None):
         """Update the manager's context with step progress"""
         self.current_step += 1
         self.workflow_progress[step] = {
@@ -354,7 +355,7 @@ class ResearchManagerWorkflow:
                 context_summary += f"- {completed_step}: {summary}\n"
         
         if self.identified_issues:
-            context_summary += f"\nIDENTIFIED ISSUES TO ADDRESS:\n"
+            context_summary += "\nIDENTIFIED ISSUES TO ADDRESS:\n"
             for issue in self.identified_issues[-3:]:  # Last 3 issues
                 context_summary += f"- {issue}\n"
         
