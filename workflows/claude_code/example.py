@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Example usage of the Research Manager Workflow
+Example usage of the Research Manager Workflow with Claude Code
 """
 
 import os
@@ -11,15 +11,15 @@ def main():
     # Load environment variables
     load_dotenv()
     
-    # Get API key
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        print("❌ Error: Please set OPENAI_API_KEY environment variable")
-        return
+    # Get optional Perplexity API key for enhanced research
+    perplexity_api_key = os.getenv("PERPLEXITY_API_KEY")
+    if not perplexity_api_key:
+        print("⚠️  No Perplexity API key found. Research will use Claude's knowledge only.")
+        print("   Set PERPLEXITY_API_KEY environment variable for enhanced research capabilities.")
     
-    # Initialize workflow
-    print("🚀 Initializing Research Manager Workflow...")
-    workflow = ResearchManagerWorkflow(api_key=api_key, model="gpt-4")
+    # Initialize workflow (uses Claude Code by default)
+    print("🚀 Initializing Research Manager Workflow with Claude Code...")
+    workflow = ResearchManagerWorkflow(model="sonnet", perplexity_api_key=perplexity_api_key)
     
     # Example research topics
     research_topics = [
@@ -54,9 +54,9 @@ def main():
             output_folder="example_reports"
         )
         
-        print(f"\n✅ Research completed successfully!")
+        print("\n✅ Research completed successfully!")
         print(f"📄 Report saved to: {report_path}")
-        print(f"📁 Research context: research_context.md")
+        print("📁 Research context: research_context.md")
         
     except Exception as e:
         print(f"❌ Error during research: {e}")
