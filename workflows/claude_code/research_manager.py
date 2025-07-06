@@ -98,7 +98,7 @@ class ClaudeCodeExecutor:
     def __init__(self, model: str = "sonnet", perplexity_api_key: Optional[str] = None):
         self.model = model
         self.perplexity_api_key = perplexity_api_key
-        self.base_command = ["claude", "-p", "--model", model, "--output-format", "json"]
+        self.base_command = ["claude", "-p", "--verbose", "--model", model]
     
     def execute_claude_command(self, prompt: str, mcp_config: Optional[str] = None) -> str:
         """Execute a Claude Code command and return the response"""
@@ -111,29 +111,30 @@ class ClaudeCodeExecutor:
         # Add the prompt
         command.append(prompt)
         
+        print(f"🔧 Executing Claude command with model: {self.model}")
+        
         try:
             result = subprocess.run(
                 command,
                 capture_output=True,
                 text=True,
-                timeout=300  # 5 minute timeout
+                timeout=1800  # 30 minute timeout for comprehensive research
             )
             
             if result.returncode != 0:
                 raise Exception(f"Claude command failed: {result.stderr}")
             
-            # Parse JSON response
-            try:
-                response_data = json.loads(result.stdout)
-                return response_data.get("content", result.stdout)
-            except json.JSONDecodeError:
-                # Fallback to raw text if JSON parsing fails
-                return result.stdout
+            # Return raw text output (no JSON parsing needed)
+            return result.stdout.strip()
                 
         except subprocess.TimeoutExpired:
-            raise Exception("Claude command timed out")
+            print(f"❌ Claude command timed out after 30 minutes")
+            raise Exception("Claude command timed out after 30 minutes")
         except Exception as e:
+            print(f"❌ Error executing Claude command: {e}")
             raise Exception(f"Error executing Claude command: {e}")
+        
+        print(f"✅ Claude command completed successfully")
 
 
 class SpecializedAgent:
@@ -180,9 +181,12 @@ specialized in discovering, collecting, and analyzing information related to spe
         
         instructions = """Your role is to gather and analyze high-quality information on assigned research topics.
 1. Read any existing research context from research_context.md
-2. Use Perplexity AI tools to conduct comprehensive research with strategic search queries
+2. Use Perplexity AI ASK commands (not Research) to conduct comprehensive information gathering
+   - Submit as many focused Ask queries as needed to thoroughly cover the topic
+   - Each Ask should target a specific aspect, use case, or question about the topic
+   - Continue asking until you have comprehensive coverage of all important aspects
 3. Evaluate information sources for credibility, currency, objectivity, and accuracy
-4. Collect and organize information systematically
+4. Collect and organize information from all Ask responses systematically
 5. Track all sources with complete citations
 6. Note conflicting information and identify gaps
 7. Format findings with clear headings
@@ -310,7 +314,7 @@ class ResearchManagerWorkflow:
         self.fact_checker = FactCheckerAgent(self.executor)
         self.writer = WriterAgent(self.executor)
         
-        # Workflow state
+        # Workflow state tracking (manager's persistent context)
         self.current_step = 0
         self.workflow_steps = [
             "initialize",
@@ -320,19 +324,65 @@ class ResearchManagerWorkflow:
             "fact_check",
             "write_report"
         ]
+        
+        # Manager's context preservation
+        self.research_topic = ""
+        self.workflow_progress = {}
+        self.step_summaries = {}
+        self.identified_issues = []
+        self.quality_checks = {}
+    
+    def update_progress(self, step: str, summary: str, issues: List[str] = None):
+        """Update the manager's context with step progress"""
+        self.current_step += 1
+        self.workflow_progress[step] = {
+            "completed": True,
+            "timestamp": datetime.now().isoformat(),
+            "summary": summary
+        }
+        self.step_summaries[step] = summary
+        if issues:
+            self.identified_issues.extend(issues)
+    
+    def create_contextual_prompt(self, agent_task: str, step: str) -> str:
+        """Create a prompt with manager's context for better coordination"""
+        context_summary = ""
+        
+        if self.step_summaries:
+            context_summary = "\n\nMANAGER'S CONTEXT FROM PREVIOUS STEPS:\n"
+            for completed_step, summary in self.step_summaries.items():
+                context_summary += f"- {completed_step}: {summary}\n"
+        
+        if self.identified_issues:
+            context_summary += f"\nIDENTIFIED ISSUES TO ADDRESS:\n"
+            for issue in self.identified_issues[-3:]:  # Last 3 issues
+                context_summary += f"- {issue}\n"
+        
+        return f"""RESEARCH TOPIC: {self.research_topic}
+CURRENT WORKFLOW STEP: {step}
+PROGRESS: Step {self.current_step + 1} of {len(self.workflow_steps)}
+
+{context_summary}
+
+TASK FOR THIS STEP:
+{agent_task}
+
+IMPORTANT: You must read from research_context.md to access all previous work, but use the manager's context above to understand the workflow progress and any issues that need attention."""
     
     def execute_workflow(self, research_topic: str, output_folder: str = "reports") -> str:
         """Execute the complete research workflow"""
         
         print(f"🔬 Starting Research Workflow: {research_topic}")
+        self.research_topic = research_topic
         
         # Step 1: Initialize Research Context
         print("📝 Initializing research context...")
         self.context.initialize(research_topic)
+        self.update_progress("initialize", f"Initialized research context for: {research_topic}")
         
         # Step 2: Delegate to Researcher
         print("🔍 Delegating to Researcher...")
-        research_task = f"""Conduct comprehensive research on: {research_topic}
+        research_task = """Conduct comprehensive research on the given topic.
         
 Please gather high-quality information from multiple sources, evaluate credibility,
 and organize findings systematically. Focus on collecting factual data, expert opinions,
@@ -341,12 +391,17 @@ current developments, and identifying any conflicting information or gaps.
 After completing your research, append your findings to research_context.md in the 
 Research Findings section."""
         
-        researcher_result = self.researcher.execute_task(research_task)
+        contextual_prompt = self.create_contextual_prompt(research_task, "research")
+        researcher_result = self.researcher.execute_task(contextual_prompt)
         self.context.append_section("Research Findings", researcher_result)
+        
+        # Extract summary for manager's context
+        research_summary = f"Completed comprehensive research gathering on {research_topic}"
+        self.update_progress("research", research_summary)
         
         # Step 3: Delegate to Synthesizer
         print("🧠 Delegating to Synthesizer...")
-        synthesis_task = f"""Analyze the research findings in research_context.md for: {research_topic}
+        synthesis_task = """Analyze the research findings in research_context.md.
         
 Please identify core themes, patterns, and relationships across the research findings.
 Organize the information into coherent frameworks and extract key insights that address
@@ -354,8 +409,12 @@ the research question. Resolve any contradictions found in the sources.
 
 Append your synthesis to research_context.md in the Synthesis section."""
         
-        synthesizer_result = self.synthesizer.execute_task(synthesis_task)
+        contextual_prompt = self.create_contextual_prompt(synthesis_task, "synthesize")
+        synthesizer_result = self.synthesizer.execute_task(contextual_prompt)
         self.context.append_section("Synthesis", synthesizer_result)
+        
+        synthesis_summary = "Completed synthesis of research findings, identified key patterns and insights"
+        self.update_progress("synthesize", synthesis_summary)
         
         # Step 4: Delegate to Expert Consultant
         print("👨‍🔬 Delegating to Expert Consultant...")
@@ -388,17 +447,31 @@ Append your verification results to research_context.md in the Verification sect
         # Create output folder if it doesn't exist
         Path(output_folder).mkdir(exist_ok=True)
         
-        write_task = f"""Create a comprehensive technical report using all sections from research_context.md for: {research_topic}
-        
-Please create a polished, professional report with MANDATORY TECHNICAL DEPTH including:
+        write_task = f"""Create a comprehensive technical report in MARKDOWN FORMAT using all sections from research_context.md for: {research_topic}
+
+CRITICAL: The entire report must be in proper Markdown format with:
+- Proper header hierarchy (# ## ### ####)
+- Code blocks with syntax highlighting (```language)
+- Tables for comparisons and data
+- Bullet points and numbered lists
+- Bold (**text**) and italic (*text*) formatting
+- Proper link formatting [text](url)
+
+REQUIRED CONTENT WITH TECHNICAL DEPTH:
 - Executive summary with technical overview
-- Detailed methodology section
-- Findings with granular technical explanations, code snippets, architectural details
+- Detailed methodology section explaining research approach
+- Comprehensive findings with:
+  * Granular technical explanations
+  * Code snippets in proper markdown code blocks
+  * Architectural details and system design
+  * Performance metrics in tables
+  * Scalability considerations and limitations
 - In-depth analysis with performance metrics and scalability considerations
 - Technical implications and future research directions
-- Comprehensive references
+- Comprehensive references with proper markdown links
 
-Save the report in the {output_folder} folder and append it to research_context.md."""
+The output must be publication-ready markdown that renders beautifully in any markdown viewer.
+Do NOT save the report yourself - just return the complete markdown content."""
         
         writer_result = self.writer.execute_task(write_task)
         self.context.append_section("Final Report", writer_result)
