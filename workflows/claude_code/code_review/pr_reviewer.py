@@ -6,12 +6,9 @@ A straightforward code review workflow that uses Claude Code's built-in
 GitHub integration to review pull requests and save results to files.
 """
 
-import os
 import sys
 import subprocess
-import json
 from datetime import datetime
-from pathlib import Path
 import argparse
 import logging
 
@@ -170,7 +167,7 @@ def main():
         
         print("✅ PR Review completed successfully!")
         print(f"📄 Review saved to: {markdown_file}")
-        print(f"\nTo view the review:")
+        print("\nTo view the review:")
         print(f"  cat {markdown_file}")
         
     except Exception as e:
