@@ -23,69 +23,77 @@ class SimplePRReviewer:
         self.model = model
         self.logger = logging.getLogger(__name__)
     
-    def review_pr(self, pr_number: int, repository: str = None, custom_instructions: str = None) -> str:
+    def review_pr(self, pr_number: int, repository: str = "", custom_instructions: str = "") -> str:
         """Review a PR using Claude Code and return the result"""
         
-        # Build the review prompt
-        if repository and repository != "current-repo":
-            repo_instruction = f"Please review GitHub PR #{pr_number} in repository {repository}."
-        else:
-            repo_instruction = f"Please review GitHub PR #{pr_number} in this repository."
-        
         # Create comprehensive review prompt
-        prompt = f"""{repo_instruction}
+        prompt = f"""Please analyze the GitHub PR #{pr_number} in the repository {repository if repository != "current-repo" else "this repository"}.
 
-Please provide a thorough code review covering:
+IMPORTANT: Use the Bash tool to first fetch the PR details using `gh pr view {pr_number} --json files,additions,deletions,title,body` and then examine the actual code changes with `gh pr diff {pr_number}`.
 
-1. **Code Quality & Best Practices**
-   - Code structure and organization
-   - Naming conventions and readability
-   - Design patterns and architecture
-   - Language-specific best practices
+After examining the actual code changes, provide a comprehensive code review covering:
 
-2. **Security Analysis**
-   - Potential security vulnerabilities
-   - Authentication and authorization issues
-   - Data exposure risks
-   - Input validation and sanitization
+## 1. Code Quality & Best Practices
+- Analyze the specific code changes for structure and organization
+- Review naming conventions and readability in the modified files
+- Assess design patterns and architectural decisions
+- Evaluate language-specific best practices
 
-3. **Performance Considerations**
-   - Algorithmic efficiency
-   - Memory usage patterns
-   - Database query optimization
-   - Scalability concerns
+## 2. Security Analysis
+- Identify potential security vulnerabilities in the changed code
+- Check for authentication and authorization issues
+- Look for data exposure risks
+- Verify input validation and sanitization
 
-4. **Documentation & Testing**
-   - Code comments and documentation
-   - Test coverage and quality
-   - API documentation completeness
+## 3. Performance Considerations
+- Analyze algorithmic efficiency of new code
+- Review memory usage patterns
+- Check database query optimization
+- Assess scalability concerns
 
-5. **Overall Assessment**
-   - Summary of key findings
-   - Recommendation (Approve/Request Changes/Reject)
-   - Priority issues that need immediate attention
+## 4. Documentation & Testing
+- Review code comments and documentation
+- Assess test coverage for new/modified code
+- Check API documentation completeness
+
+## 5. Detailed Findings
+For each issue found, provide:
+- **File name and line number(s)**
+- **Issue description**
+- **Severity level (Critical/High/Medium/Low)**
+- **Specific recommendation for fix**
+
+## 6. Overall Assessment
+- Summary of key findings with specific examples
+- Clear recommendation (Approve/Request Changes/Reject)
+- Priority issues that need immediate attention
 
 {f"Additional instructions: {custom_instructions}" if custom_instructions else ""}
 
-Please be specific with file names and line numbers where applicable, and provide actionable recommendations for improvements."""
+Please be thorough and specific - include actual code snippets, file names, and line numbers in your analysis."""
 
         # Execute Claude Code command
         try:
-            command = ["claude", "-p", "--model", self.model, prompt]
+            command = ["claude", "-p", "--model", self.model, "--allowedTools", "Bash,WebFetch"]
             
             self.logger.info(f"Executing Claude Code review for PR #{pr_number}")
             self.logger.info(f"Using model: {self.model}")
+            self.logger.debug(f"Command: {' '.join(command)}")
+            self.logger.debug(f"Prompt length: {len(prompt)} characters")
             
             result = subprocess.run(
                 command,
+                input=prompt,
                 capture_output=True,
                 text=True,
                 timeout=600  # 10 minute timeout for comprehensive reviews
             )
             
             if result.returncode != 0:
-                error_msg = f"Claude Code failed: {result.stderr}"
+                error_msg = f"Claude Code failed (exit code {result.returncode}): {result.stderr}"
                 self.logger.error(error_msg)
+                self.logger.error(f"Command: {' '.join(command)}")
+                self.logger.error(f"Stdout: {result.stdout}")
                 raise Exception(error_msg)
             
             return result.stdout.strip()
@@ -99,15 +107,14 @@ Please be specific with file names and line numbers where applicable, and provid
             self.logger.error(error_msg)
             raise Exception(error_msg)
     
-    def save_review(self, pr_number: int, repository: str, review_content: str) -> tuple:
-        """Save the review to files and return file paths"""
+    def save_review(self, pr_number: int, repository: str, review_content: str) -> str:
+        """Save the review to a markdown file and return file path"""
         
-        # Generate file names
+        # Generate file name
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         repo_name = repository.replace("/", "_") if repository != "current-repo" else "current-repo"
         
         markdown_file = f"pr_review_{repo_name}_#{pr_number}_{timestamp}.md"
-        json_file = f"pr_review_{repo_name}_#{pr_number}_{timestamp}.json"
         
         # Save markdown review
         with open(markdown_file, 'w', encoding='utf-8') as f:
@@ -118,25 +125,9 @@ Please be specific with file names and line numbers where applicable, and provid
             f.write("---\n\n")
             f.write(review_content)
             f.write("\n\n---\n")
-            f.write("*Generated by Claude Code Simple PR Reviewer*\n")
+            f.write("*Generated by Claude Code PR Reviewer*\n")
         
-        # Save JSON metadata
-        review_data = {
-            "pr_number": pr_number,
-            "repository": repository,
-            "model": self.model,
-            "timestamp": datetime.now().isoformat(),
-            "review_content": review_content,
-            "files": {
-                "markdown": markdown_file,
-                "json": json_file
-            }
-        }
-        
-        with open(json_file, 'w', encoding='utf-8') as f:
-            json.dump(review_data, f, indent=2, ensure_ascii=False)
-        
-        return markdown_file, json_file
+        return markdown_file
 
 
 def main():
@@ -173,15 +164,14 @@ def main():
         )
         
         # Save results
-        markdown_file, json_file = reviewer.save_review(
+        markdown_file = reviewer.save_review(
             pr_number=args.pr_number,
             repository=repository,
             review_content=review_content
         )
         
         print("✅ PR Review completed successfully!")
-        print(f"📄 Markdown review: {markdown_file}")
-        print(f"📊 JSON data: {json_file}")
+        print(f"📄 Review saved to: {markdown_file}")
         print(f"\nTo view the review:")
         print(f"  cat {markdown_file}")
         
