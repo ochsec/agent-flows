@@ -29,11 +29,12 @@ This workflow implements the research manager role defined in `modes/research_ma
 pip install -r requirements.txt
 ```
 
-2. **Set Environment Variables**:
+2. **Set Environment Variables** (Optional):
 ```bash
 export PERPLEXITY_API_KEY="your-perplexity-api-key"  # Optional for enhanced research
-export OPENROUTER_API_KEY="your-openrouter-api-key"  # Optional fallback for non-Claude models
 ```
+
+**Note**: No API keys are required for basic functionality. Claude Code handles authentication automatically.
 
 3. **Verify Installation**:
 ```bash
@@ -99,7 +100,8 @@ workflow = ResearchManagerWorkflow(
 - Timestamps new research tasks
 
 ### 2. Research Phase
-- **Researcher Agent** gathers information from multiple sources
+- **Researcher Agent** uses Perplexity Ask commands for targeted information gathering
+- Submits multiple focused queries rather than single broad research tasks
 - Evaluates source credibility and accuracy
 - Identifies conflicting information and gaps
 - Appends findings to Research Findings section
@@ -123,13 +125,13 @@ workflow = ResearchManagerWorkflow(
 - Appends verification results to Verification section
 
 ### 6. Report Generation Phase
-- **Writer Agent** creates comprehensive technical report
+- **Writer Agent** creates comprehensive technical report in **Markdown format**
 - Includes mandatory technical depth requirements:
-  - Code snippets and implementation details
-  - Architectural diagrams and system design
-  - Performance metrics and scalability analysis
+  - Code snippets and implementation details in markdown code blocks
+  - Architectural diagrams and system design descriptions
+  - Performance metrics and scalability analysis in tables
   - Comparative analysis with alternatives
-- Saves final report to specified folder
+- Generates publication-ready markdown saved to specified folder
 
 ## Technical Requirements
 
@@ -157,9 +159,10 @@ reports/
 ### Environment Variables
 ```bash
 PERPLEXITY_API_KEY=pplx-...        # Optional: Perplexity API key for enhanced research
-OPENROUTER_API_KEY=sk-or-...       # Optional: OpenRouter API key for fallback models
 RESEARCH_OUTPUT_FOLDER=reports     # Default output folder
 ```
+
+**Note**: OpenRouter API key is no longer used. The workflow uses Claude Code CLI directly.
 
 ### Agent Configuration
 ```python
