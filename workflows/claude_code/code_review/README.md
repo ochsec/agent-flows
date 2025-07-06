@@ -151,7 +151,6 @@ pr_review_owner_repo_#123_20240106_143022.md    # Human-readable review
 
 - `sonnet` (default) - Fast, comprehensive analysis
 - `opus` - Most thorough analysis for complex PRs
-- `haiku` - Quick analysis for simple changes
 
 ## Performance Characteristics
 
@@ -214,37 +213,6 @@ python pr_reviewer.py 123 --verbose
 claude "Review PR #123 in this repository"
 ```
 
-## Comparison with Complex Approaches
-
-| Aspect | Simple Workflow | Complex Multi-Agent |
-|--------|----------------|-------------------|
-| **Lines of Code** | 194 | 1,836 |
-| **Setup Time** | < 1 minute | 15+ minutes |
-| **Review Speed** | 5-60 seconds | 5-10 minutes |
-| **Reliability** | High (fewer failure points) | Medium (complex orchestration) |
-| **Maintenance** | Minimal | High (multiple components) |
-| **Results Quality** | Excellent (leverages Claude strengths) | Good (but over-engineered) |
-
-## Why This Approach Works Better
-
-1. **Leverages Claude Code's Strengths** - Uses built-in GitHub integration and natural language understanding
-2. **Fewer Failure Points** - Single execution path vs complex parallel orchestration
-3. **Better Results** - Claude's holistic understanding vs fragmented agent analysis
-4. **Easier Maintenance** - Simple codebase vs complex multi-agent system
-5. **Faster Execution** - Direct analysis vs orchestration overhead
-
-## Contributing
-
-1. Keep the workflow simple and focused
-2. Test with various PR sizes and types
-3. Update documentation for any changes
-4. Follow Python best practices
-5. Ensure backward compatibility
-
 ## License
 
 This workflow is part of the agent-flows project and follows the same licensing terms.
-
----
-
-*"Simplicity is the ultimate sophistication." - Leonardo da Vinci*
