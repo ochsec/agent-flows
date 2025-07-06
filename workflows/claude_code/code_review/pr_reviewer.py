@@ -27,50 +27,48 @@ class SimplePRReviewer:
         """Review a PR using Claude Code and return the result"""
         
         # Create comprehensive review prompt
-        prompt = f"""Please analyze the GitHub PR #{pr_number} in the repository {repository if repository != "current-repo" else "this repository"}.
+        prompt = f"""Please provide a comprehensive code review for GitHub PR #{pr_number} in repository {repository if repository != "current-repo" else "this repository"}.
 
-IMPORTANT: Use the Bash tool to first fetch the PR details using `gh pr view {pr_number} --json files,additions,deletions,title,body` and then examine the actual code changes with `gh pr diff {pr_number}`.
+Please analyze the pull request and provide detailed feedback covering:
 
-After examining the actual code changes, provide a comprehensive code review covering:
+## Code Quality & Best Practices
+- Code structure and organization
+- Naming conventions and readability
+- Design patterns and architecture
+- Language-specific best practices
 
-## 1. Code Quality & Best Practices
-- Analyze the specific code changes for structure and organization
-- Review naming conventions and readability in the modified files
-- Assess design patterns and architectural decisions
-- Evaluate language-specific best practices
+## Security Analysis
+- Potential security vulnerabilities
+- Authentication and authorization issues
+- Data exposure risks
+- Input validation and sanitization
 
-## 2. Security Analysis
-- Identify potential security vulnerabilities in the changed code
-- Check for authentication and authorization issues
-- Look for data exposure risks
-- Verify input validation and sanitization
+## Performance Considerations
+- Algorithmic efficiency
+- Memory usage patterns
+- Database query optimization
+- Scalability concerns
 
-## 3. Performance Considerations
-- Analyze algorithmic efficiency of new code
-- Review memory usage patterns
-- Check database query optimization
-- Assess scalability concerns
+## Documentation & Testing
+- Code comments and documentation
+- Test coverage and quality
+- API documentation completeness
 
-## 4. Documentation & Testing
-- Review code comments and documentation
-- Assess test coverage for new/modified code
-- Check API documentation completeness
+## Detailed Findings
+For each issue found, please provide:
+- File name and line number(s) where applicable
+- Issue description
+- Severity level (Critical/High/Medium/Low)
+- Specific recommendation for fix
 
-## 5. Detailed Findings
-For each issue found, provide:
-- **File name and line number(s)**
-- **Issue description**
-- **Severity level (Critical/High/Medium/Low)**
-- **Specific recommendation for fix**
-
-## 6. Overall Assessment
-- Summary of key findings with specific examples
+## Overall Assessment
+- Summary of key findings
 - Clear recommendation (Approve/Request Changes/Reject)
 - Priority issues that need immediate attention
 
 {f"Additional instructions: {custom_instructions}" if custom_instructions else ""}
 
-Please be thorough and specific - include actual code snippets, file names, and line numbers in your analysis."""
+Please be specific with file names and line numbers where applicable, and provide actionable recommendations for improvements."""
 
         # Execute Claude Code command
         try:
