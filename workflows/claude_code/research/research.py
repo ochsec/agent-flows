@@ -10,7 +10,7 @@ import os
 import subprocess
 import json
 from datetime import datetime
-from typing import Dict, Optional, Union, List
+from typing import Dict, Optional, List
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -19,7 +19,7 @@ from pydantic import BaseModel, Field
 class ResearchContext(BaseModel):
     """Manages the research_context.md file for cumulative documentation"""
     
-    file_path: Path = Field(default_factory=lambda: Path("research_context.md"))
+    file_path: Path = Field(default_factory=lambda: Path.cwd() / "research_context.md")
     sections: Dict[str, str] = Field(default_factory=dict)
     
     def initialize(self, task_description: str) -> None:
@@ -128,13 +128,13 @@ class ClaudeCodeExecutor:
             return result.stdout.strip()
                 
         except subprocess.TimeoutExpired:
-            print(f"❌ Claude command timed out after 30 minutes")
+            print("❌ Claude command timed out after 30 minutes")
             raise Exception("Claude command timed out after 30 minutes")
         except Exception as e:
             print(f"❌ Error executing Claude command: {e}")
             raise Exception(f"Error executing Claude command: {e}")
         
-        print(f"✅ Claude command completed successfully")
+        print("✅ Claude command completed successfully")
 
 
 class SpecializedAgent:
@@ -370,7 +370,7 @@ TASK FOR THIS STEP:
 
 IMPORTANT: You must read from research_context.md to access all previous work, but use the manager's context above to understand the workflow progress and any issues that need attention."""
     
-    def execute_workflow(self, research_topic: str, output_folder: str = "reports") -> str:
+    def execute_workflow(self, research_topic: str, output_folder: Optional[str] = None) -> str:
         """Execute the complete research workflow"""
         
         print(f"🔬 Starting Research Workflow: {research_topic}")
@@ -445,8 +445,14 @@ Append your verification results to research_context.md in the Verification sect
         # Step 6: Delegate to Writer
         print("✍️ Delegating to Writer...")
         
+        # Use current working directory if no output folder specified
+        if output_folder is None:
+            output_path = Path.cwd()
+        else:
+            output_path = Path(output_folder)
+        
         # Create output folder if it doesn't exist
-        Path(output_folder).mkdir(exist_ok=True)
+        output_path.mkdir(exist_ok=True)
         
         write_task = f"""Create a comprehensive technical report in MARKDOWN FORMAT using all sections from research_context.md for: {research_topic}
 
@@ -479,15 +485,22 @@ Do NOT save the report yourself - just return the complete markdown content."""
         
         # Save final report to specified folder
         report_filename = f"{research_topic.replace(' ', '_').lower()}_research_report.md"
-        report_path = Path(output_folder) / report_filename
+        report_path = output_path / report_filename
         
         with open(report_path, 'w') as f:
             f.write(f"# Research Report: {research_topic}\n\n")
             f.write(writer_result)
         
+        # Clean up research_context.md after report generation
+        try:
+            if self.context.file_path.exists():
+                self.context.file_path.unlink()
+                print(f"🧹 Cleaned up research context file: {self.context.file_path}")
+        except Exception as e:
+            print(f"⚠️  Warning: Could not delete research_context.md: {e}")
+        
         print("✅ Research workflow completed!")
         print(f"📄 Final report saved to: {report_path}")
-        print(f"📁 Full research context available in: {self.context.file_path}")
         
         return str(report_path)
 
@@ -501,7 +514,7 @@ def main():
     
     parser = argparse.ArgumentParser(description="Research Manager Workflow - Claude Code Integration")
     parser.add_argument("topic", help="Research topic to investigate")
-    parser.add_argument("--output", "-o", default="reports", help="Output folder for reports")
+    parser.add_argument("--output", "-o", default=None, help="Output folder for reports (default: current directory)")
     parser.add_argument("--model", default="sonnet", help="Claude model to use (sonnet, opus, haiku)")
     parser.add_argument("--perplexity-api-key", help="Perplexity API key (or set PERPLEXITY_API_KEY env var)")
     
