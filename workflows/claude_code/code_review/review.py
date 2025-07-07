@@ -84,7 +84,7 @@ Please be specific with file names and line numbers where applicable, and provid
                 input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minute timeout for comprehensive reviews
+                timeout=1200  # 20 minute timeout for comprehensive reviews
             )
             
             if result.returncode != 0:
@@ -97,7 +97,7 @@ Please be specific with file names and line numbers where applicable, and provid
             return result.stdout.strip()
             
         except subprocess.TimeoutExpired:
-            error_msg = "Claude Code review timed out (10 minutes)"
+            error_msg = "Claude Code review timed out (20 minutes)"
             self.logger.error(error_msg)
             raise Exception(error_msg)
         except Exception as e:
