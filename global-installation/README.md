@@ -1,6 +1,6 @@
 # Global Agent Flows Installation
 
-This directory contains the files needed to install Agent Flows globally on your system, allowing you to run research workflows from any directory.
+This directory contains the files needed to install Agent Flows globally on your system, allowing you to run research workflows and code review workflows from any directory.
 
 ## Quick Setup
 
@@ -18,6 +18,7 @@ This directory contains the files needed to install Agent Flows globally on your
 3. **Test the installation:**
    ```bash
    research --help
+   review --help
    ```
 
 ## What the Setup Script Does
@@ -27,7 +28,7 @@ The setup script (`setup.sh`) automatically:
 1. **Creates installation directory** at `~/.agent-flows`
 2. **Copies all project files** to the installation directory
 3. **Creates a Python virtual environment** with required dependencies
-4. **Installs wrapper scripts** in `~/.agent-flows/bin/`
+4. **Installs wrapper scripts** (`research`, `review`) in `~/.agent-flows/bin/`
 5. **Adds the bin directory to your PATH** in shell profiles
 
 ## Manual Installation
@@ -56,7 +57,9 @@ If you prefer to install manually:
    ```bash
    mkdir -p ~/.agent-flows/bin
    cp global-installation/research ~/.agent-flows/bin/
+   cp global-installation/review ~/.agent-flows/bin/
    chmod +x ~/.agent-flows/bin/research
+   chmod +x ~/.agent-flows/bin/review
    ```
 
 5. **Add to PATH:**
@@ -67,7 +70,9 @@ If you prefer to install manually:
 
 ## Usage
 
-Once installed, you can run research workflows from any directory:
+Once installed, you can run research and code review workflows from any directory:
+
+### Research Workflow
 
 ```bash
 # Basic research
@@ -81,6 +86,25 @@ research "Blockchain technology overview" --model opus
 
 # Research with Perplexity API integration
 research "Latest AI developments" --perplexity-api-key your_key_here
+```
+
+### Code Review Workflow
+
+```bash
+# Review a PR in the current repository
+review 123
+
+# Review a PR in a specific repository
+review 456 --repository owner/repo-name
+
+# Review with custom instructions
+review 789 --instructions "Focus on security vulnerabilities"
+
+# Review with specific Claude model
+review 101 --model opus --repository myorg/myrepo
+
+# Save review to specific directory
+review 202 --output ./reviews
 ```
 
 ## Environment Variables
@@ -128,6 +152,8 @@ The Python script automatically:
 
 ## Command Line Options
 
+### Research Command
+
 ```bash
 research "Your research topic" [OPTIONS]
 
@@ -138,12 +164,26 @@ Options:
   --help                      Show help message
 ```
 
+### Review Command
+
+```bash
+review PR_NUMBER [OPTIONS]
+
+Options:
+  --repository REPO           Repository in format owner/repo (defaults to current repo)
+  --model MODEL              Claude model to use (sonnet, opus, haiku)
+  --instructions TEXT        Additional review instructions
+  --output, -o FOLDER        Output directory for review file (default: current directory)
+  --verbose, -v              Enable verbose logging
+  --help                     Show help message
+```
+
 ## Troubleshooting
 
 ### Command not found
 - Ensure `~/.agent-flows/bin` is in your PATH
 - Restart your terminal after installation
-- Check that the wrapper script is executable: `chmod +x ~/.agent-flows/bin/research`
+- Check that the wrapper scripts are executable: `chmod +x ~/.agent-flows/bin/research ~/.agent-flows/bin/review`
 
 ### Python environment issues
 - Ensure the virtual environment exists: `ls ~/.agent-flows/.venv`
@@ -152,8 +192,8 @@ Options:
 
 ### Files created in wrong directory
 - This was a known issue that has been fixed
-- The wrapper script now preserves your original working directory
-- Research reports should appear where you ran the command
+- The wrapper scripts now preserve your original working directory
+- Research reports and code reviews should appear where you ran the command
 
 ### Research context file not cleaned up
 - The script now properly cleans up temporary files after generating reports
@@ -180,7 +220,8 @@ To update the global installation after making changes:
 2. **Copy updated files** to the global installation:
    ```bash
    cp workflows/claude_code/research/research.py ~/.agent-flows/workflows/claude_code/research/
+   cp workflows/claude_code/code_review/review.py ~/.agent-flows/workflows/claude_code/code_review/
    ```
-3. **Test the changes** by running the `research` command
+3. **Test the changes** by running the `research` or `review` commands
 
 The wrapper script architecture makes it easy to develop locally and deploy globally.

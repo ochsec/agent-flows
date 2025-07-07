@@ -45,7 +45,9 @@ mkdir -p "$INSTALL_DIR/bin"
 # Copy wrapper scripts
 echo -e "${BLUE}📜 Installing wrapper scripts...${NC}"
 cp "$SCRIPT_DIR/research" "$INSTALL_DIR/bin/"
+cp "$SCRIPT_DIR/review" "$INSTALL_DIR/bin/"
 chmod +x "$INSTALL_DIR/bin/research"
+chmod +x "$INSTALL_DIR/bin/review"
 
 # Create Python virtual environment
 echo -e "${BLUE}🐍 Creating Python virtual environment...${NC}"
@@ -96,8 +98,9 @@ echo -e "${GREEN}🎉 Installation complete!${NC}"
 echo
 echo -e "${BLUE}📋 Next steps:${NC}"
 echo "1. Restart your terminal or run: source ~/.bashrc (or ~/.zshrc)"
-echo "2. Test the installation: research --help"
+echo "2. Test the installation: research --help && review --help"
 echo "3. Run your first research: research \"Your research topic here\""
+echo "4. Review a PR: review 123 --repository owner/repo"
 echo
 echo -e "${BLUE}📝 Optional:${NC}"
 echo "- Set PERPLEXITY_API_KEY environment variable for enhanced research capabilities"
