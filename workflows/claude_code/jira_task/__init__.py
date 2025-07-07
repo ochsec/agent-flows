@@ -18,7 +18,18 @@ try:
 except ImportError:
     _ENHANCED_FEATURES_AVAILABLE = False
 
-__version__ = "2.0.0"
+# Phase 3 Advanced Features
+try:
+    from .advanced_automation import (
+        AdvancedJiraWorkflow, ProjectConfig, ProjectType, 
+        WorkflowTemplate, TemplateManager, MultiProjectManager, CIPipelineIntegration
+    )
+    from .analytics import WorkflowAnalytics, AnalyticsDatabase, ReportGenerator
+    _ADVANCED_FEATURES_AVAILABLE = True
+except ImportError:
+    _ADVANCED_FEATURES_AVAILABLE = False
+
+__version__ = "3.0.0"
 __author__ = "Claude Code Workflows"
 
 __all__ = [
@@ -41,4 +52,19 @@ if _ENHANCED_FEATURES_AVAILABLE:
         "EnhancedClaudeCodeClient",
         "GitHubPRCreator",
         "PRCreationError"
+    ])
+
+# Add advanced features to exports if available  
+if _ADVANCED_FEATURES_AVAILABLE:
+    __all__.extend([
+        "AdvancedJiraWorkflow",
+        "ProjectConfig",
+        "ProjectType",
+        "WorkflowTemplate", 
+        "TemplateManager",
+        "MultiProjectManager",
+        "CIPipelineIntegration",
+        "WorkflowAnalytics",
+        "AnalyticsDatabase",
+        "ReportGenerator"
     ])

@@ -6,7 +6,14 @@ Direct Python API integration for JIRA workflows with Claude Code development as
 
 This workflow provides seamless integration between JIRA issues and development work, using Claude Code's capabilities to assist with implementation, testing, and code review.
 
-**🚀 Phase 2 Enhanced Features Now Available!**
+**🚀 Phase 3 Advanced Features Now Available!**
+- Multi-project support with auto-detection
+- Project-specific workflow templates
+- CI/CD pipeline integration and monitoring
+- Analytics and reporting dashboard
+- Automated deployment capabilities
+
+**Phase 2 Enhanced Features:**
 - Context preservation between commands
 - Enhanced prompting strategies
 - Automatic PR creation with GitHub CLI
@@ -59,6 +66,12 @@ python jira_task.py PROJ-123
 
 # Enhanced workflow with Phase 2 features
 python jira_task.py PROJ-123 --enhanced
+
+# Advanced workflow with Phase 3 features (recommended)
+python jira_task.py PROJ-123 --advanced
+
+# Specify project for multi-project support
+python jira_task.py PROJ-123 --advanced --project my-project
 
 # Or use specific commands
 python jira_task.py PROJ-123 --command start
@@ -129,6 +142,60 @@ python jira_task.py PROJ-123 --enhanced
 🧪 Comprehensive testing with coverage analysis
 🔍 Professional code review with quality checks
 🏁 Automated PR creation with GitHub integration
+```
+
+## Advanced Workflow Features (Phase 3)
+
+### Multi-Project Support
+- Automatic project detection from repository
+- Project-specific configurations and templates
+- Support for Python, JavaScript, TypeScript, React, Next.js, FastAPI, Django, Flask
+- Custom build, test, lint, and deployment commands per project
+
+### Project Templates
+- **FastAPI Template**: API development with pytest, black, flake8, mypy
+- **React TypeScript**: Component development with Jest, ESLint, Prettier
+- **Node.js TypeScript**: Backend services with comprehensive testing
+- Automatically applies best practices for detected project type
+
+### CI/CD Integration
+- Auto-detection of CI/CD systems (GitHub Actions, GitLab CI, Jenkins, etc.)
+- Real-time build status monitoring
+- Automated deployment triggers
+- Integration with existing pipeline configurations
+
+### Analytics & Reporting
+- Comprehensive workflow analytics and metrics
+- Project productivity reports
+- Team dashboard with success rates and timing
+- Visual charts and trend analysis
+- Quality metrics tracking
+
+### Configuration
+Create `jira_projects.yml` for multi-project support:
+```yaml
+projects:
+  my-project:
+    type: fastapi
+    jira_project_key: API
+    repository_url: https://github.com/example/my-project.git
+    build_command: "pip install -r requirements.txt"
+    test_command: "pytest --cov=app"
+    reviewers: ["team-lead", "senior-dev"]
+    labels: ["api", "backend"]
+```
+
+### Usage
+```bash
+# Advanced workflow with all Phase 3 features
+python jira_task.py PROJ-123 --advanced
+
+# Advanced commands include:
+🎯 project    - Show project configuration and settings
+🔧 ci         - Check CI/CD pipeline status
+🚀 deploy     - Trigger deployment to environment
+📊 analytics  - Generate productivity reports
+🔍 analyze    - Project-specific codebase analysis
 ```
 
 ## Claude Code Permissions
@@ -211,13 +278,16 @@ gh auth login
 
 ```
 jira_task/
-├── __init__.py             # Package initialization with Phase 2 features
+├── __init__.py             # Package initialization with all phases
 ├── config.py               # Configuration management
 ├── jira_client.py          # JIRA API client
 ├── git_integration.py      # Git operations
 ├── jira_task.py            # Main workflow implementation
 ├── enhanced_workflow.py    # Phase 2 enhanced features
+├── advanced_automation.py  # Phase 3 advanced features
 ├── pr_creator.py           # GitHub PR creation utility
+├── analytics.py            # Analytics and reporting
+├── jira_projects.yml       # Multi-project configuration
 ├── example.py              # Example usage and testing
 └── README.md              # This documentation
 ```

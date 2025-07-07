@@ -437,14 +437,32 @@ def main():
     parser.add_argument("--config", help="Path to .env configuration file")
     parser.add_argument("--enhanced", action="store_true",
                        help="Use enhanced workflow with Phase 2 features")
+    parser.add_argument("--advanced", action="store_true",
+                       help="Use advanced workflow with Phase 3 features (includes enhanced)")
+    parser.add_argument("--project", help="Specify project name for multi-project support")
     
     args = parser.parse_args()
     
     try:
         config = load_jira_config(args.config)
         
-        # Use enhanced workflow if requested
-        if args.enhanced:
+        # Use advanced workflow if requested (Phase 3)
+        if args.advanced:
+            try:
+                from .advanced_automation import AdvancedJiraWorkflow
+                workflow = AdvancedJiraWorkflow(config)
+                print("🚀 Using advanced workflow with Phase 3 features")
+            except ImportError:
+                print("⚠️  Advanced workflow not available, falling back to enhanced workflow")
+                try:
+                    from .enhanced_workflow import EnhancedJiraWorkflow
+                    workflow = EnhancedJiraWorkflow(config)
+                    print("✨ Using enhanced workflow with Phase 2 features")
+                except ImportError:
+                    print("⚠️  Enhanced workflow not available, using standard workflow")
+                    workflow = JiraWorkflow(config)
+        # Use enhanced workflow if requested (Phase 2)
+        elif args.enhanced:
             try:
                 from .enhanced_workflow import EnhancedJiraWorkflow
                 workflow = EnhancedJiraWorkflow(config)

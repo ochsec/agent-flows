@@ -1,0 +1,87 @@
+# Multi-Project Configuration for JIRA Task Workflow
+# This file defines project-specific settings for different repositories
+
+projects:
+  agent-flows:
+    type: python
+    jira_project_key: FLOW
+    repository_url: https://github.com/ochsec/agent-flows.git
+    default_branch: main
+    build_command: "python -m pytest"
+    test_command: "python -m pytest --cov=workflows --cov-report=term-missing"
+    lint_command: "flake8 workflows/ && black --check workflows/"
+    reviewers:
+      - "team-lead"
+      - "senior-dev"
+    labels:
+      - "enhancement"
+      - "python"
+
+  example-fastapi:
+    type: fastapi
+    jira_project_key: API
+    repository_url: https://github.com/example/fastapi-project.git
+    default_branch: main
+    build_command: "pip install -r requirements.txt"
+    test_command: "pytest --cov=app --cov-report=html"
+    lint_command: "black --check . && flake8 . && mypy ."
+    deploy_command: "docker build -t api:latest . && docker-compose up -d"
+    ci_config_path: ".github/workflows/ci.yml"
+    reviewers:
+      - "backend-team"
+    labels:
+      - "api"
+      - "backend"
+
+  example-react:
+    type: react
+    jira_project_key: UI
+    repository_url: https://github.com/example/react-app.git
+    default_branch: main
+    build_command: "npm run build"
+    test_command: "npm test -- --coverage --watchAll=false"
+    lint_command: "npm run lint && npm run type-check"
+    deploy_command: "npm run deploy"
+    ci_config_path: ".github/workflows/ci.yml"
+    reviewers:
+      - "frontend-team"
+      - "ui-designer"
+    labels:
+      - "frontend"
+      - "react"
+      - "ui"
+
+  example-nextjs:
+    type: nextjs
+    jira_project_key: WEB
+    repository_url: https://github.com/example/nextjs-website.git
+    default_branch: main
+    build_command: "npm run build"
+    test_command: "npm test && npm run test:e2e"
+    lint_command: "npm run lint && npm run type-check"
+    deploy_command: "vercel --prod"
+    reviewers:
+      - "fullstack-team"
+    labels:
+      - "frontend"
+      - "nextjs"
+      - "fullstack"
+
+# Global settings that apply to all projects
+global_settings:
+  default_reviewers:
+    - "tech-lead"
+  
+  required_labels:
+    - "needs-review"
+  
+  quality_gates:
+    test_coverage_threshold: 80
+    lint_errors_allowed: 0
+    security_scan_required: true
+  
+  automation_rules:
+    auto_assign_reviewers: true
+    auto_add_labels: true
+    auto_link_prs: true
+    auto_update_jira: true
