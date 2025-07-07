@@ -29,7 +29,20 @@ try:
 except ImportError:
     _ADVANCED_FEATURES_AVAILABLE = False
 
-__version__ = "3.0.0"
+# Phase 4 Enterprise Features
+try:
+    from .webhook_integration import WebhookProcessor, WebhookServer, JiraWebhookHandlers, GitHubWebhookHandlers
+    from .ai_code_review import AICodeReviewer, SecurityScanner, CodeQualityAnalyzer, CodeIssue, ReviewMetrics
+    from .team_management import TeamManager, ApprovalWorkflow, CollaborationFeatures, User, Role, Permission
+    from .external_integrations import (
+        NotificationOrchestrator, SlackIntegration, TeamsIntegration, 
+        EmailIntegration, CalendarIntegration
+    )
+    _ENTERPRISE_FEATURES_AVAILABLE = True
+except ImportError:
+    _ENTERPRISE_FEATURES_AVAILABLE = False
+
+__version__ = "4.0.0"
 __author__ = "Claude Code Workflows"
 
 __all__ = [
@@ -67,4 +80,29 @@ if _ADVANCED_FEATURES_AVAILABLE:
         "WorkflowAnalytics",
         "AnalyticsDatabase",
         "ReportGenerator"
+    ])
+
+# Add enterprise features to exports if available
+if _ENTERPRISE_FEATURES_AVAILABLE:
+    __all__.extend([
+        "WebhookProcessor",
+        "WebhookServer", 
+        "JiraWebhookHandlers",
+        "GitHubWebhookHandlers",
+        "AICodeReviewer",
+        "SecurityScanner",
+        "CodeQualityAnalyzer",
+        "CodeIssue",
+        "ReviewMetrics",
+        "TeamManager",
+        "ApprovalWorkflow",
+        "CollaborationFeatures",
+        "User",
+        "Role", 
+        "Permission",
+        "NotificationOrchestrator",
+        "SlackIntegration",
+        "TeamsIntegration",
+        "EmailIntegration",
+        "CalendarIntegration"
     ])

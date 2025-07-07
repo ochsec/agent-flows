@@ -439,15 +439,40 @@ def main():
                        help="Use enhanced workflow with Phase 2 features")
     parser.add_argument("--advanced", action="store_true",
                        help="Use advanced workflow with Phase 3 features (includes enhanced)")
+    parser.add_argument("--enterprise", action="store_true",
+                       help="Use enterprise workflow with Phase 4 features (includes all previous phases)")
     parser.add_argument("--project", help="Specify project name for multi-project support")
+    parser.add_argument("--user", help="Current user for enterprise features")
     
     args = parser.parse_args()
     
     try:
         config = load_jira_config(args.config)
         
+        # Use enterprise workflow if requested (Phase 4)
+        if args.enterprise:
+            try:
+                from .enterprise_workflow import EnterpriseJiraWorkflow
+                current_user = args.user or os.getenv("USER", "unknown")
+                workflow = EnterpriseJiraWorkflow(config, current_user=current_user)
+                print("🏢 Using enterprise workflow with Phase 4 features")
+            except ImportError:
+                print("⚠️  Enterprise workflow not available, falling back to advanced workflow")
+                try:
+                    from .advanced_automation import AdvancedJiraWorkflow
+                    workflow = AdvancedJiraWorkflow(config)
+                    print("🚀 Using advanced workflow with Phase 3 features")
+                except ImportError:
+                    print("⚠️  Advanced workflow not available, falling back to enhanced workflow")
+                    try:
+                        from .enhanced_workflow import EnhancedJiraWorkflow
+                        workflow = EnhancedJiraWorkflow(config)
+                        print("✨ Using enhanced workflow with Phase 2 features")
+                    except ImportError:
+                        print("⚠️  Enhanced workflow not available, using standard workflow")
+                        workflow = JiraWorkflow(config)
         # Use advanced workflow if requested (Phase 3)
-        if args.advanced:
+        elif args.advanced:
             try:
                 from .advanced_automation import AdvancedJiraWorkflow
                 workflow = AdvancedJiraWorkflow(config)
