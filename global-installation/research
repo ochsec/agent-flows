@@ -1,0 +1,25 @@
+#!/bin/bash
+# Agent Research Workflow Wrapper
+# Activates virtual environment and runs research workflow
+
+# Preserve the original working directory
+ORIGINAL_PWD="$(pwd)"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AGENT_FLOWS_DIR="$(dirname "$SCRIPT_DIR")"
+VENV_DIR="$AGENT_FLOWS_DIR/.venv"
+
+# Check if virtual environment exists
+if [ ! -d "$VENV_DIR" ]; then
+    echo "Error: Virtual environment not found at $VENV_DIR"
+    exit 1
+fi
+
+# Activate virtual environment and run research workflow
+source "$VENV_DIR/bin/activate"
+cd "$AGENT_FLOWS_DIR"
+
+# Set the original working directory as an environment variable
+export ORIGINAL_PWD="$ORIGINAL_PWD"
+
+python "workflows/claude_code/research/research.py" "$@"
