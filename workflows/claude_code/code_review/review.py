@@ -6,6 +6,7 @@ A straightforward code review workflow that uses Claude Code's built-in
 GitHub integration to review pull requests and save results to files.
 """
 
+import os
 import sys
 import subprocess
 from datetime import datetime
@@ -83,7 +84,7 @@ Please be specific with file names and line numbers where applicable, and provid
                 input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minute timeout for comprehensive reviews
+                timeout=1200  # 20 minute timeout for comprehensive reviews
             )
             
             if result.returncode != 0:
@@ -96,7 +97,7 @@ Please be specific with file names and line numbers where applicable, and provid
             return result.stdout.strip()
             
         except subprocess.TimeoutExpired:
-            error_msg = "Claude Code review timed out (10 minutes)"
+            error_msg = "Claude Code review timed out (20 minutes)"
             self.logger.error(error_msg)
             raise Exception(error_msg)
         except Exception as e:
@@ -109,7 +110,7 @@ Please be specific with file names and line numbers where applicable, and provid
         
         # Use current working directory if no output path specified
         if output_path is None:
-            output_dir = Path.cwd()
+            output_dir = Path(os.getcwd())
         else:
             output_dir = Path(output_path)
         
@@ -138,6 +139,14 @@ Please be specific with file names and line numbers where applicable, and provid
 
 def main():
     """Main entry point"""
+    
+    # Get the original working directory from the wrapper script
+    original_cwd = os.environ.get('ORIGINAL_PWD', os.getcwd())
+    
+    # Change to the original working directory for the duration of the script
+    if original_cwd != os.getcwd():
+        print(f"🔄 Changing working directory from {os.getcwd()} to {original_cwd}")
+        os.chdir(original_cwd)
     
     parser = argparse.ArgumentParser(description="Simple PR Review using Claude Code")
     parser.add_argument("pr_number", type=int, help="Pull request number to review")

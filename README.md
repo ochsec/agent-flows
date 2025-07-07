@@ -2,6 +2,28 @@
 
 A collection of my frequently-used agent workflows and agent modes.
 
+## Global Installation
+
+Install Agent Flows globally to run workflows from any directory:
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/agent-flows.git
+cd agent-flows
+
+# Run the setup script
+cd global-installation
+./setup.sh
+
+# Restart your terminal and test
+research "How to implement microservices in Python"
+review 123 --repository owner/repo
+```
+
+This installs global `research` and `review` commands for comprehensive technical research and AI-powered code reviews.
+
+For detailed installation instructions, see [Global Installation Guide](global-installation/README.md).
+
 ## Agent Workflows
 
 ### Research
