@@ -19,23 +19,19 @@ from pydantic import BaseModel, Field
 class ResearchContext(BaseModel):
     """Manages the research_context.md file for cumulative documentation"""
     
-    file_path: Path = Field(default_factory=lambda: Path.cwd() / "research_context.md")
+    file_path: Path = Field(default_factory=lambda: Path(os.getcwd()) / "research_context.md")
     sections: Dict[str, str] = Field(default_factory=dict)
     
+    def set_working_directory(self, working_dir: str):
+        """Set the working directory for the research context file"""
+        self.file_path = Path(working_dir) / "research_context.md"
+    
     def initialize(self, task_description: str) -> None:
-        """Initialize or update research context file"""
+        """Initialize research context file (starts fresh for new research task)"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        if self.file_path.exists():
-            # Preserve existing content
-            with open(self.file_path, 'r') as f:
-                existing_content = f.read()
-        else:
-            existing_content = ""
-        
-        # Create new section for this research task
-        new_section = f"""
-# Research Task: {task_description}
+        # Start fresh for each new research task
+        content = f"""# Research Task: {task_description}
 **Started:** {timestamp}
 
 ## Research Findings
@@ -53,13 +49,11 @@ _(This section will be populated by the Fact-Checker mode)_
 ## Final Report
 _(This section will be populated by the Writer mode)_
 
----
-
 """
         
-        # Write updated content
+        # Overwrite any existing file to start fresh
         with open(self.file_path, 'w') as f:
-            f.write(existing_content + new_section)
+            f.write(content)
     
     def append_section(self, section_name: str, content: str) -> None:
         """Append content to a specific section"""
@@ -98,7 +92,7 @@ class ClaudeCodeExecutor:
     def __init__(self, model: str = "sonnet", perplexity_api_key: Optional[str] = None):
         self.model = model
         self.perplexity_api_key = perplexity_api_key
-        self.base_command = ["claude", "-p", "--verbose", "--model", model]
+        self.base_command = ["claude", "-p", "--verbose", "--model", model, "--allowedTools", "bash,webSearch"]
     
     def execute_claude_command(self, prompt: str, mcp_config: Optional[str] = None) -> str:
         """Execute a Claude Code command and return the response"""
@@ -108,14 +102,12 @@ class ClaudeCodeExecutor:
         if mcp_config:
             command.extend(["--mcp-config", mcp_config])
         
-        # Add the prompt
-        command.append(prompt)
-        
         print(f"🔧 Executing Claude command with model: {self.model}")
         
         try:
             result = subprocess.run(
                 command,
+                input=prompt,  # Send prompt via stdin for -p mode
                 capture_output=True,
                 text=True,
                 timeout=1800  # 30 minute timeout for comprehensive research
@@ -133,8 +125,6 @@ class ClaudeCodeExecutor:
         except Exception as e:
             print(f"❌ Error executing Claude command: {e}")
             raise Exception(f"Error executing Claude command: {e}")
-        
-        print("✅ Claude command completed successfully")
 
 
 class SpecializedAgent:
@@ -374,10 +364,15 @@ IMPORTANT: You must read from research_context.md to access all previous work, b
         """Execute the complete research workflow"""
         
         print(f"🔬 Starting Research Workflow: {research_topic}")
+        print(f"🗂️  Current working directory: {os.getcwd()}")
+        print(f"🗂️  Script directory: {Path(__file__).parent}")
+        print(f"🗂️  Output folder: {output_folder}")
         self.research_topic = research_topic
         
         # Step 1: Initialize Research Context
         print("📝 Initializing research context...")
+        if output_folder:
+            self.context.set_working_directory(str(output_folder))
         self.context.initialize(research_topic)
         self.update_progress("initialize", f"Initialized research context for: {research_topic}")
         
@@ -484,7 +479,18 @@ Do NOT save the report yourself - just return the complete markdown content."""
         self.context.append_section("Final Report", writer_result)
         
         # Save final report to specified folder
-        report_filename = f"{research_topic.replace(' ', '_').lower()}_research_report.md"
+        # Clean the research topic to create a valid filename
+        import re
+        clean_topic = re.sub(r'[^\w\s-]', '', research_topic)  # Remove special chars
+        clean_topic = re.sub(r'[-\s]+', '_', clean_topic)  # Replace spaces/hyphens with underscores
+        clean_topic = clean_topic.strip('_').lower()  # Remove leading/trailing underscores
+        
+        # Limit filename length to avoid filesystem issues
+        max_length = 100
+        if len(clean_topic) > max_length:
+            clean_topic = clean_topic[:max_length].rstrip('_')
+        
+        report_filename = f"{clean_topic}_research_report.md"
         report_path = output_path / report_filename
         
         with open(report_path, 'w') as f:
@@ -493,11 +499,16 @@ Do NOT save the report yourself - just return the complete markdown content."""
         
         # Clean up research_context.md after report generation
         try:
-            if self.context.file_path.exists():
-                self.context.file_path.unlink()
-                print(f"🧹 Cleaned up research context file: {self.context.file_path}")
+            research_context_path = self.context.file_path
+            if research_context_path.exists():
+                research_context_path.unlink()
+                print(f"🧹 Cleaned up research context file: {research_context_path}")
+            else:
+                print(f"ℹ️  Research context file not found for cleanup: {research_context_path}")
         except Exception as e:
             print(f"⚠️  Warning: Could not delete research_context.md: {e}")
+            print(f"   File path: {self.context.file_path}")
+            print("   Please manually delete this file to prevent bloat")
         
         print("✅ Research workflow completed!")
         print(f"📄 Final report saved to: {report_path}")
@@ -509,6 +520,14 @@ def main():
     """Main entry point for the research manager workflow"""
     import argparse
     from dotenv import load_dotenv
+    
+    # Get the original working directory from the wrapper script
+    original_cwd = os.environ.get('ORIGINAL_PWD', os.getcwd())
+    
+    # Change to the original working directory for the duration of the script
+    if original_cwd != os.getcwd():
+        print(f"🔄 Changing working directory from {os.getcwd()} to {original_cwd}")
+        os.chdir(original_cwd)
     
     load_dotenv()
     
@@ -523,13 +542,14 @@ def main():
     # Get Perplexity API key from args or environment
     perplexity_api_key = args.perplexity_api_key or os.getenv("PERPLEXITY_API_KEY")
     if not perplexity_api_key:
-        print("⚠️  Warning: No Perplexity API key provided. Research will be limited to Claude's knowledge.")
+        print("⚠️  Warning: No Perplexity API key provided. Research will be limited to Claude's web search.")
         print("   Set PERPLEXITY_API_KEY environment variable or use --perplexity-api-key for enhanced research.")
     
     # Initialize and run workflow
     workflow = ResearchManagerWorkflow(model=args.model, perplexity_api_key=perplexity_api_key)
     
     try:
+        # Now that we're in the correct working directory, use args.output directly
         report_path = workflow.execute_workflow(args.topic, args.output)
         print("\n🎉 Research completed successfully!")
         print(f"📊 Report available at: {report_path}")
