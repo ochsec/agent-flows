@@ -6,6 +6,13 @@ Direct Python API integration for JIRA workflows with Claude Code development as
 
 This workflow provides seamless integration between JIRA issues and development work, using Claude Code's capabilities to assist with implementation, testing, and code review.
 
+**🚀 Phase 2 Enhanced Features Now Available!**
+- Context preservation between commands
+- Enhanced prompting strategies
+- Automatic PR creation with GitHub CLI
+- Professional workflow completion
+- Comprehensive quality checks
+
 ## Features
 
 - **Direct JIRA API Integration**: No external dependencies like MCP servers
@@ -47,8 +54,11 @@ python example.py --demo PROJ-123
 ### 3. Start Working on an Issue
 
 ```bash
-# Start work on JIRA issue (enters interactive mode)
+# Standard workflow
 python jira_task.py PROJ-123
+
+# Enhanced workflow with Phase 2 features
+python jira_task.py PROJ-123 --enhanced
 
 # Or use specific commands
 python jira_task.py PROJ-123 --command start
@@ -80,6 +90,46 @@ Available commands in interactive mode:
 - Branch push to remote
 - Pull request creation
 - JIRA update with completion status
+
+## Enhanced Workflow Features (Phase 2)
+
+### Context Preservation
+- Maintains command history and file changes throughout session
+- Builds upon previous analysis and work
+- Avoids redundant operations
+- Provides session summaries
+
+### Enhanced Claude Code Integration
+- Context-aware prompting with session history
+- Task-specific instructions for better results
+- Intelligent file modification tracking
+- Professional workflow completion
+
+### Automatic PR Creation
+- GitHub CLI integration for seamless PR creation
+- Comprehensive PR descriptions with change summaries
+- Automatic JIRA issue linking
+- Professional commit message generation
+
+### Quality Assurance
+- Code quality checks and linting integration
+- Security and performance analysis
+- Comprehensive testing coverage
+- Professional review process
+
+### Usage
+```bash
+# Use enhanced features
+python jira_task.py PROJ-123 --enhanced
+
+# Enhanced commands provide:
+✨ Context preservation between commands
+🔍 Deeper analysis with session awareness  
+🛠️ Incremental implementation with quality focus
+🧪 Comprehensive testing with coverage analysis
+🔍 Professional code review with quality checks
+🏁 Automated PR creation with GitHub integration
+```
 
 ## Claude Code Permissions
 
@@ -132,29 +182,44 @@ Available commands:
 
 ## Dependencies
 
+### Core Dependencies
 - Python 3.7+
 - requests
 - python-dotenv
 - pydantic
 - git (command line tool)
-- GitHub CLI (gh) for PR creation
 
-Install dependencies:
+### Phase 2 Enhanced Features
+- GitHub CLI (gh) for automated PR creation
+- Additional Python packages for enhanced functionality
+
+### Installation
 ```bash
+# Core dependencies
 pip install requests python-dotenv pydantic
+
+# Install GitHub CLI for PR creation
+# macOS: brew install gh
+# Ubuntu: apt install gh  
+# Windows: winget install GitHub.cli
+
+# Authenticate GitHub CLI
+gh auth login
 ```
 
 ## File Structure
 
 ```
 jira_task/
-├── __init__.py          # Package initialization
-├── config.py            # Configuration management
-├── jira_client.py       # JIRA API client
-├── git_integration.py   # Git operations
-├── jira_task.py         # Main workflow implementation
-├── example.py           # Example usage and testing
-└── README.md           # This file
+├── __init__.py             # Package initialization with Phase 2 features
+├── config.py               # Configuration management
+├── jira_client.py          # JIRA API client
+├── git_integration.py      # Git operations
+├── jira_task.py            # Main workflow implementation
+├── enhanced_workflow.py    # Phase 2 enhanced features
+├── pr_creator.py           # GitHub PR creation utility
+├── example.py              # Example usage and testing
+└── README.md              # This documentation
 ```
 
 ## JIRA API Token Setup

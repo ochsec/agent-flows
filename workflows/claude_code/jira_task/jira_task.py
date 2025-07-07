@@ -435,12 +435,25 @@ def main():
     parser.add_argument("--status-filter", "-s", default="To Do", 
                        help="Issue status filter for list command")
     parser.add_argument("--config", help="Path to .env configuration file")
+    parser.add_argument("--enhanced", action="store_true",
+                       help="Use enhanced workflow with Phase 2 features")
     
     args = parser.parse_args()
     
     try:
         config = load_jira_config(args.config)
-        workflow = JiraWorkflow(config)
+        
+        # Use enhanced workflow if requested
+        if args.enhanced:
+            try:
+                from .enhanced_workflow import EnhancedJiraWorkflow
+                workflow = EnhancedJiraWorkflow(config)
+                print("✨ Using enhanced workflow with Phase 2 features")
+            except ImportError:
+                print("⚠️  Enhanced workflow not available, using standard workflow")
+                workflow = JiraWorkflow(config)
+        else:
+            workflow = JiraWorkflow(config)
         
         if args.command == "start":
             result = workflow.start_work_on_issue(args.issue_key)
