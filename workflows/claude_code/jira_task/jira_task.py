@@ -441,6 +441,9 @@ def main():
                        help="Use advanced workflow with Phase 3 features (includes enhanced)")
     parser.add_argument("--enterprise", action="store_true",
                        help="Use enterprise workflow with Phase 4 features (includes all previous phases)")
+    parser.add_argument("--agent-modes", action="store_true",
+                       help="Use agent-flows mode-based workflow with Phase 5 features (includes all previous phases)")
+    parser.add_argument("--modes-path", help="Path to agent-flows modes directory (default: ./modes)")
     parser.add_argument("--project", help="Specify project name for multi-project support")
     parser.add_argument("--user", help="Current user for enterprise features")
     
@@ -449,8 +452,41 @@ def main():
     try:
         config = load_jira_config(args.config)
         
+        # Use agent-flows mode-based workflow if requested (Phase 5)
+        if args.agent_modes:
+            try:
+                from .mode_based_workflow import ModeBasedJiraWorkflow
+                from pathlib import Path
+                
+                current_user = args.user or os.getenv("USER", "unknown")
+                modes_path = Path(args.modes_path) if args.modes_path else None
+                workflow = ModeBasedJiraWorkflow(config, current_user=current_user, modes_path=modes_path)
+                print("🎭 Using agent-flows mode-based workflow with Phase 5 features")
+            except ImportError as e:
+                print(f"⚠️  Agent-flows mode-based workflow not available: {e}")
+                print("   Falling back to enterprise workflow")
+                try:
+                    from .enterprise_workflow import EnterpriseJiraWorkflow
+                    current_user = args.user or os.getenv("USER", "unknown")
+                    workflow = EnterpriseJiraWorkflow(config, current_user=current_user)
+                    print("🏢 Using enterprise workflow with Phase 4 features")
+                except ImportError:
+                    print("⚠️  Enterprise workflow not available, falling back to advanced workflow")
+                    try:
+                        from .advanced_automation import AdvancedJiraWorkflow
+                        workflow = AdvancedJiraWorkflow(config)
+                        print("🚀 Using advanced workflow with Phase 3 features")
+                    except ImportError:
+                        print("⚠️  Advanced workflow not available, falling back to enhanced workflow")
+                        try:
+                            from .enhanced_workflow import EnhancedJiraWorkflow
+                            workflow = EnhancedJiraWorkflow(config)
+                            print("✨ Using enhanced workflow with Phase 2 features")
+                        except ImportError:
+                            print("⚠️  Enhanced workflow not available, using standard workflow")
+                            workflow = JiraWorkflow(config)
         # Use enterprise workflow if requested (Phase 4)
-        if args.enterprise:
+        elif args.enterprise:
             try:
                 from .enterprise_workflow import EnterpriseJiraWorkflow
                 current_user = args.user or os.getenv("USER", "unknown")
@@ -499,11 +535,17 @@ def main():
             workflow = JiraWorkflow(config)
         
         if args.command == "start":
-            result = workflow.start_work_on_issue(args.issue_key)
-            if result["status"] == "success":
-                # Continue with development workflow
-                print("\\n🤖 Launching Claude Code development assistant...")
-                workflow.execute_development_workflow(args.issue_key, result['issue'])
+            # Check if this is a Phase 5 mode-based workflow
+            if hasattr(workflow, 'start_mode_based_workflow'):
+                # Phase 5: Agent-flows mode-based workflow
+                workflow.start_mode_based_workflow(args.issue_key)
+            else:
+                # Phases 1-4: Traditional workflows
+                result = workflow.start_work_on_issue(args.issue_key)
+                if result["status"] == "success":
+                    # Continue with development workflow
+                    print("\\n🤖 Launching Claude Code development assistant...")
+                    workflow.execute_development_workflow(args.issue_key, result['issue'])
             
         elif args.command == "list":
             issues = workflow.find_my_issues(args.status_filter)

@@ -569,6 +569,12 @@ python jira_task.py PROJ-123 --advanced
 # Enterprise workflow with Phase 4 features (recommended for teams)
 python jira_task.py PROJ-123 --enterprise --user john.doe
 
+# Agent-flows mode-based workflow with Phase 5 features (intelligent orchestration)
+python jira_task.py PROJ-123 --agent-modes --user john.doe
+
+# Agent-flows workflow with custom modes directory
+python jira_task.py PROJ-123 --agent-modes --modes-path /path/to/modes --user john.doe
+
 # Specify project for multi-project support
 python jira_task.py PROJ-123 --advanced --project my-project
 
@@ -786,6 +792,58 @@ python enterprise_workflow.py PROJ-123 --command webhook-server --webhook-port 8
 🔧 ci          - CI/CD pipeline status monitoring
 🚀 deploy      - Deployment with approval workflows
 🏁 done        - Complete enterprise workflow with notifications
+```
+
+### Phase 5 Agent-Flows Mode-Based Workflow
+
+Phase 5 represents the evolution of the JIRA workflow to leverage sophisticated **agent-flows modes** for intelligent task orchestration. Unlike traditional workflows, Phase 5 uses an orchestrator that dynamically delegates tasks to specialized modes.
+
+#### Agent-Flows Interactive Commands
+
+```bash
+# Start Phase 5 agent-flows workflow
+python jira_task.py PROJ-123 --agent-modes --user john.doe
+
+🎭 Agent-Flows Interactive Mode Commands:
+📋 plan         - Review the orchestrator's master plan
+🎭 orchestrate  - Strategic workflow coordination and guidance  
+📖 story        - Break down requirements into user stories
+🏗️  architect    - Design system architecture and approach
+🔍 research     - Investigate solutions and best practices
+🛠️  code         - Implement with production-ready code
+🐛 debug        - Debug issues and troubleshoot problems
+👨‍💼 review       - Expert technical review and validation
+📝 write        - Create comprehensive documentation
+🚀 devops       - Configure deployment and operations
+🏁 done         - Complete workflow with synthesis
+```
+
+#### Mode-Based Orchestration Features
+
+- **Dynamic Mode Selection**: Orchestrator analyzes JIRA issue and recommends appropriate modes
+- **Intelligent Coordination**: Non-predetermined workflow sequence adapts to issue requirements
+- **Expert-Level Capabilities**: Each mode provides specialized expertise (architecture, security, etc.)
+- **Comprehensive Synthesis**: Final synthesis combines all mode results into actionable insights
+- **Context Preservation**: Workflow context maintained across all mode executions
+
+#### Requirements for Phase 5
+
+```bash
+# Required: Agent-flows modes directory with instruction files
+modes/
+├── orchestrator.md      # Strategic coordination
+├── architect.md         # System design
+├── code.md             # Implementation
+├── debug.md            # Troubleshooting
+├── researcher.md       # Investigation
+├── user_story.md       # Requirements analysis
+├── expert_consultant.md # Technical review
+├── fact_checker.md     # Validation
+├── writer.md           # Documentation
+└── devops.md           # Deployment
+
+# Demo and test Phase 5 setup
+python example_phase5.py
 ```
 
 ## Claude Code Permissions

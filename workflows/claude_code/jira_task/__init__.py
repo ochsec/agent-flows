@@ -42,7 +42,17 @@ try:
 except ImportError:
     _ENTERPRISE_FEATURES_AVAILABLE = False
 
-__version__ = "4.0.0"
+# Phase 5 Agent-Flows Mode Integration
+try:
+    from .mode_based_workflow import (
+        ModeBasedJiraWorkflow, ClaudeCodeModeExecutor, TaskAnalyzer,
+        ModeType, WorkflowPhase, ModeContext
+    )
+    _AGENT_FLOWS_FEATURES_AVAILABLE = True
+except ImportError:
+    _AGENT_FLOWS_FEATURES_AVAILABLE = False
+
+__version__ = "5.0.0"
 __author__ = "Claude Code Workflows"
 
 __all__ = [
@@ -105,4 +115,15 @@ if _ENTERPRISE_FEATURES_AVAILABLE:
         "TeamsIntegration",
         "EmailIntegration",
         "CalendarIntegration"
+    ])
+
+# Add agent-flows mode-based features to exports if available
+if _AGENT_FLOWS_FEATURES_AVAILABLE:
+    __all__.extend([
+        "ModeBasedJiraWorkflow",
+        "ClaudeCodeModeExecutor",
+        "TaskAnalyzer",
+        "ModeType",
+        "WorkflowPhase", 
+        "ModeContext"
     ])
