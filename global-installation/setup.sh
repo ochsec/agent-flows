@@ -22,6 +22,15 @@ INSTALL_DIR="$HOME/.agent-flows"
 # Check if installation directory already exists
 if [ -d "$INSTALL_DIR" ]; then
     echo -e "${YELLOW}⚠️  Installation directory $INSTALL_DIR already exists.${NC}"
+    
+    # Backup existing config.toml if it exists
+    CONFIG_BACKUP=""
+    if [ -f "$INSTALL_DIR/config.toml" ]; then
+        CONFIG_BACKUP="/tmp/agent-flows-config-backup-$(date +%s).toml"
+        cp "$INSTALL_DIR/config.toml" "$CONFIG_BACKUP"
+        echo -e "${BLUE}📋 Backed up existing config.toml to $CONFIG_BACKUP${NC}"
+    fi
+    
     read -p "Do you want to overwrite it? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
@@ -65,6 +74,21 @@ source .venv/bin/activate
 # Install required packages
 pip install --upgrade pip
 pip install pydantic python-dotenv tomli tomli-w requests
+
+# Restore config.toml if it was backed up
+if [ -n "$CONFIG_BACKUP" ] && [ -f "$CONFIG_BACKUP" ]; then
+    echo
+    echo -e "${BLUE}🔧 Previous configuration file found${NC}"
+    read -p "Do you want to restore your previous config.toml? (Y/n): " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Nn]$ ]]; then
+        cp "$CONFIG_BACKUP" "$INSTALL_DIR/config.toml"
+        echo -e "${GREEN}✅ Restored existing config.toml${NC}"
+    else
+        echo -e "${YELLOW}⚠️  Previous config.toml not restored. You'll need to reconfigure.${NC}"
+    fi
+    rm "$CONFIG_BACKUP"
+fi
 
 echo -e "${BLUE}🔗 Setting up PATH...${NC}"
 
