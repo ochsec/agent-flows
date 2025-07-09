@@ -191,12 +191,14 @@ class JiraWorkflow:
         ]
         
         try:
+            working_dir = os.getenv('ORIGINAL_PWD', os.getcwd())
             result = subprocess.run(
                 command,
                 input=prompt,
                 capture_output=True,
                 text=True,
-                timeout=1800  # 30 minute timeout for complex development tasks
+                cwd=working_dir,
+                timeout=1800
             )
             
             if result.returncode != 0:
@@ -538,7 +540,7 @@ def main():
             # Check if this is a Phase 5 mode-based workflow
             if hasattr(workflow, 'start_mode_based_workflow'):
                 # Phase 5: Agent-flows mode-based workflow
-                workflow.start_mode_based_workflow(args.issue_key)
+                getattr(workflow, 'start_mode_based_workflow')(args.issue_key)
             else:
                 # Phases 1-4: Traditional workflows
                 result = workflow.start_work_on_issue(args.issue_key)
