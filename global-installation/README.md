@@ -19,6 +19,7 @@ This directory contains the files needed to install Agent Flows globally on your
    ```bash
    research --help
    review --help
+   jira_task --help
    ```
 
 ## What the Setup Script Does
@@ -28,7 +29,7 @@ The setup script (`setup.sh`) automatically:
 1. **Creates installation directory** at `~/.agent-flows`
 2. **Copies all project files** to the installation directory
 3. **Creates a Python virtual environment** with required dependencies
-4. **Installs wrapper scripts** (`research`, `review`) in `~/.agent-flows/bin/`
+4. **Installs wrapper scripts** (`research`, `review`, `jira_task`) in `~/.agent-flows/bin/`
 5. **Adds the bin directory to your PATH** in shell profiles
 
 ## Manual Installation
@@ -58,8 +59,10 @@ If you prefer to install manually:
    mkdir -p ~/.agent-flows/bin
    cp global-installation/research ~/.agent-flows/bin/
    cp global-installation/review ~/.agent-flows/bin/
+   cp global-installation/jira_task ~/.agent-flows/bin/
    chmod +x ~/.agent-flows/bin/research
    chmod +x ~/.agent-flows/bin/review
+   chmod +x ~/.agent-flows/bin/jira_task
    ```
 
 5. **Add to PATH:**
@@ -70,7 +73,7 @@ If you prefer to install manually:
 
 ## Usage
 
-Once installed, you can run research and code review workflows from any directory:
+Once installed, you can run research, code review, and JIRA task workflows from any directory:
 
 ### Research Workflow
 
@@ -107,6 +110,37 @@ review 101 --model opus --repository myorg/myrepo
 review 202 --output ./reviews
 ```
 
+### JIRA Task Workflow
+
+```bash
+# Start work on a JIRA issue (Phase 1: Basic workflow)
+jira_task PROJ-123
+
+# Start work with enhanced features (Phase 2)
+jira_task PROJ-123 --enhanced
+
+# Start work with advanced automation (Phase 3)
+jira_task PROJ-123 --advanced
+
+# Start work with enterprise features (Phase 4)
+jira_task PROJ-123 --enterprise --user your-username
+
+# Start work with agent-flows mode-based workflow (Phase 5)
+jira_task PROJ-123 --agent-modes --modes-path ./modes
+
+# List your assigned issues
+jira_task --command list --status-filter "To Do"
+
+# Update issue progress
+jira_task PROJ-123 --command update --comment "Implemented authentication feature"
+
+# Check issue status
+jira_task PROJ-123 --command status
+
+# Create configuration file for JIRA
+jira_task PROJ-123 --create-config
+```
+
 ## Environment Variables
 
 ### Optional: Perplexity API Key
@@ -123,17 +157,39 @@ Add this to your shell profile (`~/.bashrc`, `~/.zshrc`, etc.) to make it perman
 echo 'export PERPLEXITY_API_KEY="your_api_key_here"' >> ~/.bashrc
 ```
 
+### JIRA Credentials (for jira_task workflow)
+
+For JIRA task workflow integration, you'll need to configure your JIRA credentials:
+
+1. **Create configuration file:**
+   ```bash
+   jira_task ISSUE-KEY --create-config
+   ```
+
+2. **Edit the .env file** with your JIRA server details:
+   ```bash
+   JIRA_BASE_URL=https://your-company.atlassian.net
+   JIRA_USERNAME=your-email@company.com
+   JIRA_API_TOKEN=your-api-token
+   JIRA_PROJECT_KEY=PROJ
+   ```
+
+3. **Get JIRA API token:**
+   - Visit: https://id.atlassian.com/manage-profile/security/api-tokens
+   - Create a new API token
+   - Use this token as your JIRA_API_TOKEN
+
 ## How It Works
 
 ### Wrapper Script Architecture
 
-The `research` command is a bash wrapper script that:
+The `research`, `review`, and `jira_task` commands are bash wrapper scripts that:
 
 1. **Preserves working directory** - Captures where you ran the command
 2. **Activates virtual environment** - Ensures Python dependencies are available
 3. **Changes to installation directory** - Required for the Python script to find its files
 4. **Passes original directory** - Via `ORIGINAL_PWD` environment variable
-5. **Runs Python workflow** - Executes the research workflow with all arguments
+5. **Runs Python workflow** - Executes the appropriate workflow (research, review, or JIRA task) with all arguments
 
 ### Directory Handling
 
@@ -178,12 +234,35 @@ Options:
   --help                     Show help message
 ```
 
+### JIRA Task Command
+
+```bash
+jira_task ISSUE_KEY [OPTIONS]
+
+Required Arguments:
+  ISSUE_KEY                   JIRA issue key to work on (e.g., PROJ-123)
+
+Options:
+  --command, -c COMMAND       Command to execute (start, list, update, status) [default: start]
+  --comment COMMENT           Progress comment for update command
+  --status-filter, -s STATUS  Issue status filter for list command [default: "To Do"]
+  --config CONFIG             Path to .env configuration file
+  --enhanced                  Use enhanced workflow with Phase 2 features
+  --advanced                  Use advanced workflow with Phase 3 features
+  --enterprise                Use enterprise workflow with Phase 4 features
+  --agent-modes               Use agent-flows mode-based workflow with Phase 5 features
+  --modes-path PATH           Path to agent-flows modes directory [default: ./modes]
+  --project PROJECT           Specify project name for multi-project support
+  --user USER                 Current user for enterprise features
+  --help                      Show help message
+```
+
 ## Troubleshooting
 
 ### Command not found
 - Ensure `~/.agent-flows/bin` is in your PATH
 - Restart your terminal after installation
-- Check that the wrapper scripts are executable: `chmod +x ~/.agent-flows/bin/research ~/.agent-flows/bin/review`
+- Check that the wrapper scripts are executable: `chmod +x ~/.agent-flows/bin/research ~/.agent-flows/bin/review ~/.agent-flows/bin/jira_task`
 
 ### Python environment issues
 - Ensure the virtual environment exists: `ls ~/.agent-flows/.venv`
@@ -221,7 +300,8 @@ To update the global installation after making changes:
    ```bash
    cp workflows/claude_code/research/research.py ~/.agent-flows/workflows/claude_code/research/
    cp workflows/claude_code/code_review/review.py ~/.agent-flows/workflows/claude_code/code_review/
+   cp workflows/claude_code/jira_task/*.py ~/.agent-flows/workflows/claude_code/jira_task/
    ```
-3. **Test the changes** by running the `research` or `review` commands
+3. **Test the changes** by running the `research`, `review`, or `jira_task` commands
 
 The wrapper script architecture makes it easy to develop locally and deploy globally.

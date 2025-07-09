@@ -46,8 +46,10 @@ mkdir -p "$INSTALL_DIR/bin"
 echo -e "${BLUE}📜 Installing wrapper scripts...${NC}"
 cp "$SCRIPT_DIR/research" "$INSTALL_DIR/bin/"
 cp "$SCRIPT_DIR/review" "$INSTALL_DIR/bin/"
+cp "$SCRIPT_DIR/jira_task" "$INSTALL_DIR/bin/"
 chmod +x "$INSTALL_DIR/bin/research"
 chmod +x "$INSTALL_DIR/bin/review"
+chmod +x "$INSTALL_DIR/bin/jira_task"
 
 # Create Python virtual environment
 echo -e "${BLUE}🐍 Creating Python virtual environment...${NC}"
@@ -98,12 +100,16 @@ echo -e "${GREEN}🎉 Installation complete!${NC}"
 echo
 echo -e "${BLUE}📋 Next steps:${NC}"
 echo "1. Restart your terminal or run: source ~/.bashrc (or ~/.zshrc)"
-echo "2. Test the installation: research --help && review --help"
+echo "2. Test the installation: research --help && review --help && jira_task --help"
 echo "3. Run your first research: research \"Your research topic here\""
 echo "4. Review a PR: review 123 --repository owner/repo"
+echo "5. Work on a JIRA issue: jira_task PROJ-123"
 echo
 echo -e "${BLUE}📝 Optional:${NC}"
 echo "- Set PERPLEXITY_API_KEY environment variable for enhanced research capabilities"
 echo "- Add it to your shell profile: echo 'export PERPLEXITY_API_KEY=your_key_here' >> ~/.bashrc"
+echo "- Configure JIRA credentials for jira_task workflow:"
+echo "  - Run: jira_task ISSUE-KEY --create-config"
+echo "  - Edit the created .env file with your JIRA server details"
 echo
 echo -e "${GREEN}✨ Happy researching!${NC}"
