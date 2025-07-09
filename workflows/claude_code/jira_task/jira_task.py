@@ -186,8 +186,7 @@ class JiraWorkflow:
             "claude", "-p",  # Print mode for programmatic use
             "--verbose",
             "--model", "sonnet",
-            "--allowedTools", 
-            "read,write,edit,multiEdit,glob,grep,ls,bash,git,npm,cargo,python,pytest,webSearch,task"
+            "--allowedTools", "read,write,edit,multiEdit,glob,grep,ls,bash,git,npm,cargo,python,pytest,webSearch,task"
         ]
         
         try:
