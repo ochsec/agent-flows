@@ -340,4 +340,5 @@ To update the global installation after making changes:
    ```
 3. **Test the changes** by running the `research`, `review`, or `jira_task` commands
 
+
 The wrapper script architecture makes it easy to develop locally and deploy globally.
