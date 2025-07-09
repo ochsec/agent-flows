@@ -1,0 +1,91 @@
+teams:
+  backend:
+    description: "Backend Development Team"
+    lead: "tech_lead"
+    members: ["tech_lead", "senior_dev", "developer1", "developer2"]
+    projects: ["api", "services", "database"]
+    approval_rules:
+      deploy_production: ["tech_lead", "admin"]
+      deploy_staging: ["tech_lead"]
+      force_merge: ["tech_lead"]
+      deploy_with_issues: ["tech_lead", "admin"]
+
+  frontend:
+    description: "Frontend Development Team"
+    lead: "frontend_lead"
+    members: ["frontend_lead", "ui_dev", "react_dev"]
+    projects: ["web", "mobile", "components"]
+    approval_rules:
+      deploy_production: ["frontend_lead", "admin"]
+      deploy_staging: ["frontend_lead"]
+      force_merge: ["frontend_lead"]
+
+  devops:
+    description: "DevOps and Infrastructure Team"
+    lead: "devops_lead"
+    members: ["devops_lead", "sre1", "sre2"]
+    projects: ["infrastructure", "monitoring", "deployment"]
+    approval_rules:
+      deploy_production: ["devops_lead"]
+      infrastructure_change: ["devops_lead", "admin"]
+
+users:
+  - username: "admin"
+    email: "admin@company.com"
+    display_name: "System Administrator"
+    role: "admin"
+    team: "backend"
+
+  - username: "tech_lead"
+    email: "tech.lead@company.com"
+    display_name: "Technical Lead"
+    role: "tech_lead"
+    team: "backend"
+
+  - username: "senior_dev"
+    email: "senior.dev@company.com"
+    display_name: "Senior Developer"
+    role: "senior_dev"
+    team: "backend"
+
+  - username: "developer1"
+    email: "dev1@company.com"
+    display_name: "Backend Developer 1"
+    role: "developer"
+    team: "backend"
+
+  - username: "developer2"
+    email: "dev2@company.com"
+    display_name: "Backend Developer 2"
+    role: "developer"
+    team: "backend"
+
+  - username: "frontend_lead"
+    email: "frontend.lead@company.com"
+    display_name: "Frontend Lead"
+    role: "tech_lead"
+    team: "frontend"
+
+  - username: "ui_dev"
+    email: "ui.dev@company.com"
+    display_name: "UI Developer"
+    role: "developer"
+    team: "frontend"
+
+  - username: "react_dev"
+    email: "react.dev@company.com"
+    display_name: "React Developer"
+    role: "senior_dev"
+    team: "frontend"
+
+  - username: "devops_lead"
+    email: "devops.lead@company.com"
+    display_name: "DevOps Lead"
+    role: "tech_lead"
+    team: "devops"
+
+  - username: "reviewer1"
+    email: "reviewer1@company.com"
+    display_name: "Code Reviewer"
+    role: "reviewer"
+    team: "backend"
