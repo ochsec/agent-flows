@@ -426,9 +426,9 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description="JIRA Task Workflow Integration - Claude Code")
-    parser.add_argument("issue_key", help="JIRA issue key to work on (e.g., PROJ-123)")
+    parser.add_argument("issue_key", nargs='?', help="JIRA issue key to work on (e.g., PROJ-123)")
     parser.add_argument("--command", "-c", 
-                       choices=["start", "list", "update", "status"], 
+                       choices=["start", "list", "update", "status", "configure"], 
                        default="start",
                        help="Command to execute (default: start)")
     parser.add_argument("--comment", help="Progress comment for update command")

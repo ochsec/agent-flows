@@ -996,6 +996,586 @@ When checking status:
 - Analytics and reporting dashboard
 - Claude Code plugin/extension for seamless integration
 
+## Phase 5: Agent-Flows Mode Integration
+
+### Overview
+
+Phase 5 represents the evolution of the JIRA workflow to leverage the sophisticated **agent-flows modes system** for intelligent task orchestration. Instead of using generic Claude Code prompts, Phase 5 employs the specialized modes from the `@modes/` directory (originally from Roo Code and custom implementations) to handle different aspects of the development workflow with expert-level capabilities.
+
+### Mode-Based Architecture
+
+The Phase 5 implementation leverages the **Orchestrator mode** (`@modes/orchestrator.md`) as the primary supervisor, which then delegates specific JIRA development tasks to specialized modes through **Claude Code invocations**. Unlike the linear research workflow, the JIRA task workflow is **dynamic and non-predetermined** in its sequence.
+
+#### Claude Code Mode Execution Pattern
+
+Following the research workflow pattern from `@workflows/claude_code/research/research.py`:
+
+```python
+class ClaudeCodeModeExecutor:
+    """Handles execution of Claude Code commands with specialized modes"""
+    
+    def __init__(self, model: str = "sonnet"):
+        self.model = model
+        self.base_command = ["claude", "-p", "--verbose", "--model", model]
+        self.available_modes = {
+            'orchestrator': Path('modes/orchestrator.md'),
+            'architect': Path('modes/architect.md'),
+            'code': Path('modes/code.md'),
+            'debug': Path('modes/debug.md'),
+            'devops': Path('modes/devops.md'),
+            'expert_consultant': Path('modes/expert_consultant.md'),
+            'fact_checker': Path('modes/fact_checker.md'),
+            'researcher': Path('modes/researcher.md'),
+            'synthesizer': Path('modes/synthesizer.md'),
+            'user_story': Path('modes/user_story.md'),
+            'writer': Path('modes/writer.md'),
+            'ask': Path('modes/ask.md')
+        }
+    
+    def load_mode_instructions(self, mode_name: str) -> str:
+        """Load mode instructions from file"""
+        mode_file = self.available_modes[mode_name]
+        with open(mode_file, 'r') as f:
+            return f.read()
+    
+    def execute_claude_with_mode(self, mode_name: str, task_prompt: str, tools: str = None) -> str:
+        """Execute Claude Code with a specific mode"""
+        mode_instructions = self.load_mode_instructions(mode_name)
+        
+        # Combine mode instructions with task
+        full_prompt = f"""{mode_instructions}
+
+Task: {task_prompt}
+
+Please complete this task according to your mode instructions above."""
+        
+        command = self.base_command.copy()
+        if tools:
+            command.extend(["--allowedTools", tools])
+        
+        try:
+            result = subprocess.run(
+                command,
+                input=full_prompt,
+                capture_output=True,
+                text=True,
+                timeout=1800  # 30 minute timeout
+            )
+            
+            if result.returncode != 0:
+                raise Exception(f"Claude command failed: {result.stderr}")
+            
+            return result.stdout.strip()
+                
+        except subprocess.TimeoutExpired:
+            raise Exception("Claude command timed out after 30 minutes")
+        except Exception as e:
+            raise Exception(f"Error executing Claude command: {e}")
+
+
+class ModeBasedJiraWorkflow(EnterpriseJiraWorkflow):
+    """Phase 5 workflow using agent-flows modes with dynamic orchestration"""
+    
+    def __init__(self, jira_config: JiraConfig, repo_path: Optional[str] = None, 
+                 current_user: str = None):
+        super().__init__(jira_config, repo_path, current_user)
+        self.mode_executor = ClaudeCodeModeExecutor()
+        self.workflow_context = JiraWorkflowContext()
+        self.orchestration_history = []
+```
+
+#### Mode Specialization for JIRA Workflows
+
+| JIRA Task Type | Primary Mode | Secondary Mode | Agent Purpose |
+|---------------|-------------|----------------|---------------|
+| **Requirements Analysis** | `user_story.md` | `ask.md` | Breaking down JIRA requirements into actionable stories |
+| **System Design** | `architect.md` | `expert_consultant.md` | Architecture planning for JIRA features |
+| **Research & Investigation** | `researcher.md` | `research_manager.md` | Investigating solutions and dependencies |
+| **Code Implementation** | `code.md` | `debug.md` | Writing and debugging JIRA-related code |
+| **Technical Validation** | `fact_checker.md` | `expert_consultant.md` | Verifying implementation quality |
+| **Documentation** | `writer.md` | `synthesizer.md` | Creating comprehensive documentation |
+| **Deployment** | `devops.md` | `architect.md` | Infrastructure and deployment strategy |
+| **Workflow Coordination** | `orchestrator.md` | `research_manager.md` | Managing complex multi-step workflows |
+
+### Enhanced JIRA Workflow Commands (Phase 5)
+
+#### Mode-Based Interactive Development
+
+```python
+def _mode_based_interactive_development(self, issue_key: str, issue_data: Dict[str, Any]) -> None:
+    """Agent-flows mode-based interactive development"""
+    
+    # Start with orchestrator mode to analyze the JIRA issue
+    orchestrator_prompt = f"""
+    As the workflow orchestrator, analyze JIRA issue {issue_key}: {issue_data['summary']}
+    
+    Issue Context:
+    - Description: {issue_data['description']}
+    - Project: {self.current_project.name if self.current_project else 'Unknown'}
+    - User Role: {self.user.role.value if self.user else 'Unknown'}
+    
+    Break this JIRA development task into appropriate subtasks and recommend which agent-flows modes should handle each part:
+    
+    Available modes: orchestrator, architect, code, debug, devops, expert_consultant, 
+                    fact_checker, researcher, research_manager, synthesizer, user_story, writer, ask
+    
+    Provide a coordination plan for completing this JIRA issue efficiently.
+    """
+    
+    coordination_plan = self._execute_agent_mode('orchestrator', orchestrator_prompt)
+    print(f"🎭 Orchestrator Plan:\n{coordination_plan}")
+    
+    while True:
+        print("\n" + "="*80)
+        print(f"🎭 Agent-Flows Workflow | Issue: {issue_key}")
+        
+        user_input = input(f"\n🎭 [{issue_key}] Agent Mode (help/orchestrate/story/architect/research/code/debug/review/write/devops/done/quit): ").strip().lower()
+        
+        if user_input == 'orchestrate':
+            self._delegate_to_orchestrator(issue_key, issue_data)
+        elif user_input == 'story':
+            self._delegate_to_user_story_mode(issue_key, issue_data)
+        elif user_input == 'architect':
+            self._delegate_to_architect_mode(issue_key, issue_data)
+        elif user_input == 'research':
+            self._delegate_to_research_modes(issue_key, issue_data)
+        elif user_input == 'code':
+            self._delegate_to_code_mode(issue_key, issue_data)
+        elif user_input == 'debug':
+            self._delegate_to_debug_mode(issue_key, issue_data)
+        elif user_input == 'review':
+            self._delegate_to_review_modes(issue_key, issue_data)
+        elif user_input == 'write':
+            self._delegate_to_writer_mode(issue_key, issue_data)
+        elif user_input == 'devops':
+            self._delegate_to_devops_mode(issue_key, issue_data)
+        elif user_input == 'done':
+            self._mode_based_completion(issue_key)
+            break
+        elif user_input == 'quit':
+            self._show_session_summary(issue_key)
+            break
+        elif user_input == 'help':
+            self._show_agent_modes_help()
+        else:
+            print("❌ Unknown command. Type 'help' for available agent mode commands.")
+```
+
+#### Agent Mode Delegation Examples
+
+##### 1. User Story Mode for Requirements
+```python
+def _delegate_to_user_story_mode(self, issue_key: str, issue_data: Dict[str, Any]) -> None:
+    """Use user story mode to break down JIRA requirements"""
+    
+    user_story_prompt = f"""
+    @modes/user_story.md
+    
+    Analyze JIRA issue {issue_key} and break it down into clear user stories and acceptance criteria.
+    
+    JIRA Issue: {issue_data['summary']}
+    Description: {issue_data['description']}
+    
+    Your tasks:
+    1. Extract the core user needs from this JIRA issue
+    2. Create well-formed user stories ("As a... I want... So that...")
+    3. Define clear acceptance criteria for each story
+    4. Identify any edge cases or special requirements
+    5. Suggest the priority and complexity of each story
+    
+    Focus on transforming the JIRA issue into actionable development tasks.
+    Use attempt_completion when the user story analysis is complete.
+    """
+    
+    result = self._execute_agent_mode('user_story', user_story_prompt)
+    self.mode_context.add_user_stories(result)
+    print(f"📖 User Story Analysis:\n{result}")
+```
+
+##### 2. Research Manager for Investigation
+```python
+def _delegate_to_research_modes(self, issue_key: str, issue_data: Dict[str, Any]) -> None:
+    """Use research modes to investigate JIRA issue requirements"""
+    
+    research_manager_prompt = f"""
+    @modes/research_manager.md
+    
+    Coordinate research for JIRA issue {issue_key}: {issue_data['summary']}
+    
+    Research Scope:
+    - Technical requirements investigation
+    - Existing solution analysis
+    - Dependency and integration research
+    - Best practices and standards review
+    
+    Coordinate with researcher mode to gather comprehensive information.
+    Use synthesizer mode to compile findings into actionable insights.
+    
+    Issue Context: {issue_data['description']}
+    Project Type: {self.current_project.type.value if self.current_project else 'Unknown'}
+    
+    Provide a research strategy and coordinate the investigation.
+    """
+    
+    research_plan = self._execute_agent_mode('research_manager', research_manager_prompt)
+    
+    # Execute detailed research based on the plan
+    researcher_prompt = f"""
+    @modes/researcher.md
+    
+    Based on the research plan, investigate the technical aspects of JIRA issue {issue_key}.
+    
+    Research Plan: {research_plan}
+    
+    Conduct thorough research on:
+    1. Technical implementation approaches
+    2. Required libraries and frameworks
+    3. Integration patterns and examples
+    4. Potential challenges and solutions
+    
+    Use available tools to gather comprehensive information.
+    """
+    
+    research_results = self._execute_agent_mode('researcher', researcher_prompt)
+    self.mode_context.add_research_findings(research_results)
+    print(f"🔍 Research Results:\n{research_results}")
+```
+
+##### 3. Architect Mode for System Design
+```python
+def _delegate_to_architect_mode(self, issue_key: str, issue_data: Dict[str, Any]) -> None:
+    """Use architect mode for system design decisions"""
+    
+    architect_prompt = f"""
+    @modes/architect.md
+    
+    Design the system architecture for JIRA issue {issue_key}: {issue_data['summary']}
+    
+    Context:
+    - User Stories: {self.mode_context.get_user_stories()}
+    - Research Findings: {self.mode_context.get_research_summary()}
+    - Current Architecture: {self._get_current_system_overview()}
+    - Project Type: {self.current_project.type.value if self.current_project else 'Unknown'}
+    
+    Architecture Tasks:
+    1. Design the solution architecture
+    2. Define component interactions and data flow
+    3. Specify integration points with existing systems
+    4. Recommend design patterns and approaches
+    5. Identify potential architectural risks and mitigations
+    
+    Create a comprehensive architectural design that guides implementation.
+    Use attempt_completion when the architectural design is complete.
+    """
+    
+    architecture_design = self._execute_agent_mode('architect', architect_prompt)
+    self.mode_context.add_architecture_design(architecture_design)
+    print(f"🏗️ Architecture Design:\n{architecture_design}")
+```
+
+##### 4. Expert Consultant for Technical Review
+```python
+def _delegate_to_review_modes(self, issue_key: str, issue_data: Dict[str, Any]) -> None:
+    """Use expert consultant and fact checker for comprehensive review"""
+    
+    # Expert technical review
+    expert_prompt = f"""
+    @modes/expert_consultant.md
+    
+    Provide expert technical consultation for JIRA issue {issue_key} implementation.
+    
+    Implementation Context:
+    - Architecture: {self.mode_context.get_architecture_summary()}
+    - Code Changes: {self._get_implementation_summary()}
+    - Test Results: {self._get_test_summary()}
+    
+    Expert Review Tasks:
+    1. Assess overall solution quality and approach
+    2. Identify security, performance, and scalability concerns
+    3. Review code quality and maintainability
+    4. Recommend improvements and best practices
+    5. Validate alignment with project standards
+    
+    Provide comprehensive expert feedback and recommendations.
+    """
+    
+    expert_review = self._execute_agent_mode('expert_consultant', expert_prompt)
+    
+    # Fact checking for validation
+    fact_check_prompt = f"""
+    @modes/fact_checker.md
+    
+    Validate the technical claims and implementation for JIRA issue {issue_key}.
+    
+    Items to Verify:
+    - Technical approach feasibility
+    - Implementation correctness
+    - Security measures adequacy
+    - Performance expectations
+    - Integration compatibility
+    
+    Expert Claims: {expert_review}
+    
+    Verify technical accuracy and flag any concerns.
+    """
+    
+    fact_check_results = self._execute_agent_mode('fact_checker', fact_check_prompt)
+    
+    self.mode_context.add_review_results(expert_review, fact_check_results)
+    print(f"👨‍💼 Expert Review:\n{expert_review}")
+    print(f"✅ Fact Check:\n{fact_check_results}")
+```
+
+### Mode Coordination Workflow
+
+#### Orchestrator-Driven Development Process
+
+```python
+def _execute_orchestrated_workflow(self, issue_key: str, issue_data: Dict[str, Any]) -> None:
+    """Execute a fully orchestrated workflow using agent-flows modes"""
+    
+    orchestrator_master_prompt = f"""
+    @modes/orchestrator.md
+    
+    Orchestrate the complete development workflow for JIRA issue {issue_key}.
+    
+    Issue: {issue_data['summary']}
+    Description: {issue_data['description']}
+    
+    Available agent modes: user_story, researcher, research_manager, architect, 
+                          code, debug, expert_consultant, fact_checker, synthesizer, writer, devops
+    
+    Create a comprehensive workflow plan that:
+    1. Breaks down this JIRA issue into logical phases
+    2. Assigns appropriate agent modes to each phase
+    3. Defines clear handoffs between modes
+    4. Ensures quality gates and validation points
+    5. Coordinates the overall development process
+    
+    Start by delegating the first phase and provide coordination for the entire workflow.
+    """
+    
+    # Execute the orchestrator to get the master plan
+    master_plan = self._execute_agent_mode('orchestrator', orchestrator_master_prompt)
+    
+    # Parse and execute the coordinated workflow
+    workflow_phases = self._parse_workflow_phases(master_plan)
+    
+    for phase in workflow_phases:
+        print(f"\n🎭 Executing Phase: {phase['name']}")
+        print(f"📋 Agent Mode: {phase['mode']}")
+        print(f"🎯 Objective: {phase['objective']}")
+        
+        # Execute the phase with the designated mode
+        phase_result = self._execute_workflow_phase(phase, issue_key, issue_data)
+        
+        # Update shared context
+        self.mode_context.add_phase_result(phase['name'], phase_result)
+        
+        print(f"✅ Phase '{phase['name']}' completed by {phase['mode']}")
+    
+    # Final synthesis of all results
+    synthesis_prompt = f"""
+    @modes/synthesizer.md
+    
+    Synthesize the complete workflow results for JIRA issue {issue_key}.
+    
+    Workflow Results: {self.mode_context.get_all_results()}
+    
+    Create a comprehensive summary of:
+    1. What was accomplished in each phase
+    2. Key decisions and their rationale
+    3. Implementation highlights
+    4. Quality assurance results
+    5. Deployment readiness
+    6. Recommendations for next steps
+    
+    Provide a clear, actionable summary of the completed work.
+    """
+    
+    final_synthesis = self._execute_agent_mode('synthesizer', synthesis_prompt)
+    print(f"\n📋 Workflow Synthesis:\n{final_synthesis}")
+    
+    # Update JIRA with the comprehensive results
+    self._update_jira_with_mode_results(issue_key, final_synthesis)
+```
+
+### Phase 5 Usage Example
+
+```bash
+# Start Phase 5 agent-flows mode-based workflow
+python jira_task.py PROJ-123 --agent-modes --user john.doe
+
+🎭 Agent-Flows JIRA Workflow - Phase 5
+🎯 Issue: PROJ-123 - Implement user authentication system
+👤 User: john.doe (senior_dev) | Team: backend
+
+🎭 [PROJ-123] Agent Mode: orchestrate
+
+🎭 Orchestrator Coordination Plan:
+
+Phase 1: Requirements Analysis (user_story mode)
+- Break down authentication requirements into user stories
+- Define acceptance criteria and edge cases
+
+Phase 2: Research (research_manager + researcher modes)  
+- Investigate authentication best practices
+- Research available libraries and frameworks
+- Analyze security requirements
+
+Phase 3: Architecture (architect mode)
+- Design authentication system architecture
+- Define API contracts and data models
+- Plan integration approach
+
+Phase 4: Implementation (code mode)
+- Implement core authentication logic
+- Create API endpoints and middleware
+- Add comprehensive error handling
+
+Phase 5: Validation (expert_consultant + fact_checker modes)
+- Security review and vulnerability assessment
+- Code quality validation
+- Technical accuracy verification
+
+Phase 6: Documentation (writer mode)
+- Create API documentation
+- Write deployment guides
+- Document security procedures
+
+Phase 7: Deployment (devops mode)
+- Configure secure deployment pipeline
+- Set up monitoring and alerting
+- Prepare production rollout
+
+🎭 [PROJ-123] Agent Mode: story
+
+📖 User Story Analysis:
+
+User Stories Generated:
+1. As a user, I want to securely log in with email/password so that I can access my account
+2. As a user, I want my session to remain active so that I don't have to re-login frequently
+3. As a user, I want to safely log out so that my account is protected on shared devices
+4. As an admin, I want to monitor authentication attempts so that I can detect security threats
+
+Acceptance Criteria:
+- Login endpoint validates credentials and returns JWT token
+- Token refresh mechanism extends sessions automatically
+- Logout invalidates tokens immediately
+- Failed login attempts are logged and rate-limited
+- Passwords must meet complexity requirements
+
+🎭 [PROJ-123] Agent Mode: research
+
+🔍 Research Results:
+
+Authentication Approach Analysis:
+- JWT tokens recommended for stateless authentication
+- bcrypt for password hashing (12+ rounds)
+- Rate limiting to prevent brute force attacks
+- Session management with refresh tokens
+
+Library Recommendations:
+- PyJWT for token handling
+- bcrypt for password security
+- Flask-Limiter for rate limiting
+- python-jose for advanced JWT features
+
+Security Considerations:
+- HTTPS required for all auth endpoints
+- CSRF protection for web clients
+- Secure cookie settings for token storage
+- Regular security audits recommended
+
+🎭 [PROJ-123] Agent Mode: architect
+
+🏗️ Architecture Design:
+
+Authentication System Components:
+
+1. AuthService Layer:
+   - User credential validation
+   - Token generation and validation
+   - Session management
+   - Security policy enforcement
+
+2. API Endpoints:
+   - POST /auth/login (credential validation)
+   - POST /auth/refresh (token renewal)
+   - POST /auth/logout (session termination)
+   - GET /auth/me (current user info)
+
+3. Middleware Components:
+   - Authentication middleware for protected routes
+   - Rate limiting middleware
+   - Request logging middleware
+   - CORS configuration
+
+4. Data Models:
+   - User model with secure password storage
+   - Session model for tracking active sessions
+   - Audit log model for security events
+
+Integration Points:
+- Database layer for user/session storage
+- Frontend authentication state management
+- Existing API protection
+- Logging and monitoring systems
+
+🎭 [PROJ-123] Agent Mode: done
+
+🎉 Agent-Flows Workflow Complete!
+
+📊 Final Synthesis:
+- Requirements: Complete user story breakdown with acceptance criteria ✅
+- Research: Comprehensive security and implementation analysis ✅
+- Architecture: Professional system design with clear integration plan ✅
+- Implementation: Secure, tested authentication system ✅
+- Validation: Expert security review and fact-checking ✅
+- Documentation: Complete API docs and deployment guides ✅
+
+🔗 JIRA Issue Updated: Comprehensive implementation with expert validation
+🚀 Ready for: Staging deployment and security testing
+```
+
+### Integration with Claude Code
+
+Phase 5 maintains compatibility with Claude Code while leveraging agent-flows modes:
+
+```python
+def _execute_agent_mode(self, mode_name: str, prompt: str) -> str:
+    """Execute an agent-flows mode using Claude Code as the execution engine"""
+    
+    # Load the mode instructions
+    mode_file = self.available_modes[mode_name]
+    mode_instructions = self._load_mode_instructions(mode_file)
+    
+    # Combine mode instructions with the specific prompt
+    full_prompt = f"{mode_instructions}\n\n{prompt}"
+    
+    # Execute using Claude Code with appropriate tools
+    claude_tools = self._get_tools_for_mode(mode_name)
+    
+    return self._execute_claude_command_with_mode(full_prompt, claude_tools)
+
+def _get_tools_for_mode(self, mode_name: str) -> str:
+    """Get appropriate Claude Code tools for each agent mode"""
+    mode_tools = {
+        'researcher': 'read,glob,grep,webSearch,task',
+        'architect': 'read,write,edit,glob,grep,task',
+        'code': 'read,write,edit,multiEdit,bash,git,python,pytest',
+        'debug': 'read,edit,bash,python,pytest,git',
+        'devops': 'read,write,bash,git,task',
+        'writer': 'read,write,edit,task',
+        'expert_consultant': 'read,glob,grep,task',
+        'fact_checker': 'read,webSearch,task',
+        'user_story': 'read,write,task',
+        'synthesizer': 'read,write,task',
+        'orchestrator': 'read,task'
+    }
+    return mode_tools.get(mode_name, 'read,write,task')
+```
+
 ## Conclusion
 
 The research demonstrates that implementing a JIRA workflow integration for Claude Code is not only feasible but can leverage existing architectural patterns for rapid development. The direct Python API approach provides a simple, maintainable foundation for scalable integration with modern security standards.
@@ -1006,8 +1586,9 @@ The research demonstrates that implementing a JIRA workflow integration for Clau
 3. **Phased Implementation**: Gradual rollout minimizes risk and allows for iterative improvement
 4. **Modern Standards**: Implement 2025 authentication and API requirements from the start
 5. **Environment-based Configuration**: Secure credential management via environment variables
+6. **Agent-Flows Intelligence**: Utilize specialized agent modes for expert-level task orchestration
 
-The proposed architecture provides a solid foundation for connecting JIRA issues to development workflows, enabling seamless transition from issue tracking to code development with Claude Code's intelligent automation capabilities.
+The proposed architecture, culminating in Phase 5's agent-flows mode integration, provides a comprehensive foundation for connecting JIRA issues to development workflows with intelligent automation and expert-level capabilities across all aspects of software development.
 
 ## References
 

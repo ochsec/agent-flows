@@ -43,10 +43,10 @@ class JiraConfig(BaseModel):
 
 def load_jira_config(config_path: Optional[str] = None) -> JiraConfig:
     """
-    Load JIRA configuration from environment variables or config file
+    Load JIRA configuration from unified config system or fallback to environment variables
     
     Args:
-        config_path: Optional path to .env file
+        config_path: Optional path to .env file (for backward compatibility)
         
     Returns:
         JiraConfig: Validated configuration object
@@ -54,7 +54,31 @@ def load_jira_config(config_path: Optional[str] = None) -> JiraConfig:
     Raises:
         ValueError: If required configuration is missing or invalid
     """
-    # Load environment variables
+    # Try unified config system first
+    try:
+        from pathlib import Path
+        import sys
+        
+        # Add project root to path to import config
+        project_root = Path(__file__).parent.parent.parent.parent
+        sys.path.insert(0, str(project_root))
+        
+        from config import AgentFlowsConfig
+        
+        unified_config = AgentFlowsConfig()
+        if unified_config.is_jira_configured():
+            jira_config = unified_config.get_jira_config()
+            return JiraConfig(
+                base_url=jira_config['base_url'],
+                api_token=jira_config['api_token'],
+                username=jira_config['username'],
+                project_key=jira_config.get('project_key')
+            )
+    except Exception:
+        # Fall back to environment variables if unified config fails
+        pass
+    
+    # Fallback: Load environment variables
     if config_path:
         load_dotenv(config_path)
     else:
@@ -77,8 +101,9 @@ def load_jira_config(config_path: Optional[str] = None) -> JiraConfig:
     
     if missing_fields:
         raise ValueError(
-            f"Missing required environment variables: {', '.join(missing_fields)}\n"
-            "Please set these variables in your .env file or environment."
+            f"Missing required JIRA configuration.\n"
+            f"Please run 'python config.py configure --jira' to set up JIRA credentials,\n"
+            f"or set these environment variables: {', '.join(missing_fields)}"
         )
     
     return JiraConfig(

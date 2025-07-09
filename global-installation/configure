@@ -1,6 +1,6 @@
 #!/bin/bash
-# Agent JIRA Task Workflow Wrapper
-# Activates virtual environment and runs JIRA task workflow
+# Agent Flows Configuration Wrapper
+# Activates virtual environment and runs configuration utility
 
 # Preserve the original working directory
 ORIGINAL_PWD="$(pwd)"
@@ -15,15 +15,11 @@ if [ ! -d "$VENV_DIR" ]; then
     exit 1
 fi
 
-# Activate virtual environment and run JIRA task workflow
+# Activate virtual environment and run configuration
 source "$VENV_DIR/bin/activate"
 cd "$AGENT_FLOWS_DIR"
 
 # Set the original working directory as an environment variable
 export ORIGINAL_PWD="$ORIGINAL_PWD"
 
-# Change back to original directory for git operations
-cd "$ORIGINAL_PWD"
-
-# Run with agent-flows directory in Python path
-PYTHONPATH="$AGENT_FLOWS_DIR" python -m workflows.claude_code.jira_task.jira_task "$@"
+python "config.py" "$@"
