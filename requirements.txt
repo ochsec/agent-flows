@@ -3,6 +3,7 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 pyyaml>=6.0.1
 typing-extensions>=4.8.0
+html2text>=2020.1.16
 
 # Code Review Workflow Dependencies
 # Note: Claude Code CLI handles GitHub integration automatically
