@@ -98,8 +98,15 @@ class WebOperations:
             elif 'text/html' in content_type:
                 # Fallback: simple HTML stripping if html2text not available
                 import re
-                text = re.sub('<[^<]+?>', '', response.text)
-                markdown_content = text
+                # Convert headers to markdown format first
+                text = response.text
+                text = re.sub(r'<h1[^>]*>(.*?)</h1>', r'# \1', text, flags=re.IGNORECASE)
+                text = re.sub(r'<h2[^>]*>(.*?)</h2>', r'## \1', text, flags=re.IGNORECASE)
+                text = re.sub(r'<h3[^>]*>(.*?)</h3>', r'### \1', text, flags=re.IGNORECASE)
+                # Then strip remaining HTML tags
+                text = re.sub('<[^<]+?>', '', text)
+                # Clean up whitespace
+                markdown_content = re.sub(r'\n\s*\n', '\n\n', text.strip())
             else:
                 # For non-HTML content, use as-is
                 markdown_content = response.text
@@ -188,21 +195,108 @@ class WebOperations:
         
     def _process_with_ai(self, content: str, prompt: str) -> str:
         """
-        Process content with AI based on the prompt.
-        
-        This is a placeholder for the actual AI processing.
-        In a real implementation, this would call an AI model.
+        Process content with AI based on the prompt, mimicking Claude Code's behavior.
         
         Args:
-            content: The content to process
+            content: The content to process (markdown-converted from HTML)
             prompt: The prompt to use for processing
             
         Returns:
-            Processed content based on the prompt
+            Processed analysis based on the prompt, similar to Claude Code's WebFetch
         """
-        # Simulate AI processing
-        # In real implementation, this would call an AI model API
-        return f"AI Analysis based on prompt: '{prompt}'\\n\\nContent Summary:\\n{content[:500]}..."
+        # Analyze the prompt to determine what type of analysis is requested
+        prompt_lower = prompt.lower()
+        
+        # Extract key information from content
+        lines = content.split('\n')
+        content_length = len(content)
+        word_count = len(content.split())
+        
+        # Identify content structure
+        headings = [line for line in lines if line.startswith('#')]
+        links = [line for line in lines if 'http' in line or 'www.' in line]
+        
+        # Build analysis based on prompt intent
+        analysis_parts = []
+        
+        if any(keyword in prompt_lower for keyword in ['summarize', 'summary', 'main points']):
+            analysis_parts.append("## Summary")
+            # Extract first few paragraphs as summary
+            paragraphs = [line.strip() for line in lines if line.strip() and not line.startswith('#')][:3]
+            for para in paragraphs:
+                if len(para) > 50:  # Only include substantial paragraphs
+                    analysis_parts.append(f"- {para[:200]}{'...' if len(para) > 200 else ''}")
+                    
+        elif any(keyword in prompt_lower for keyword in ['extract', 'find', 'identify']):
+            analysis_parts.append("## Extracted Information")
+            if 'link' in prompt_lower or 'url' in prompt_lower:
+                analysis_parts.append("### Links Found:")
+                for link in links[:5]:  # Limit to first 5 links
+                    analysis_parts.append(f"- {link.strip()}")
+            elif 'heading' in prompt_lower or 'title' in prompt_lower:
+                analysis_parts.append("### Headings Found:")
+                for heading in headings[:10]:  # Limit to first 10 headings
+                    analysis_parts.append(f"- {heading.strip()}")
+            else:
+                # General extraction - look for key terms from prompt
+                keywords = [word for word in prompt.split() if len(word) > 3]
+                relevant_lines = []
+                for line in lines:
+                    if any(keyword.lower() in line.lower() for keyword in keywords):
+                        relevant_lines.append(line.strip())
+                        if len(relevant_lines) >= 5:
+                            break
+                for line in relevant_lines:
+                    analysis_parts.append(f"- {line[:150]}{'...' if len(line) > 150 else ''}")
+                    
+        elif any(keyword in prompt_lower for keyword in ['analyze', 'analysis', 'understand']):
+            analysis_parts.append("## Content Analysis")
+            analysis_parts.append(f"**Document Structure:**")
+            analysis_parts.append(f"- Length: {content_length:,} characters, {word_count:,} words")
+            analysis_parts.append(f"- Sections: {len(headings)} headings found")
+            analysis_parts.append(f"- Links: {len(links)} links identified")
+            
+            if headings:
+                analysis_parts.append("\\n**Main Topics:**")
+                for heading in headings[:5]:
+                    clean_heading = heading.replace('#', '').strip()
+                    analysis_parts.append(f"- {clean_heading}")
+                    
+        elif any(keyword in prompt_lower for keyword in ['explain', 'describe', 'what']):
+            analysis_parts.append("## Content Description")
+            # Provide overview of the content
+            first_paragraph = next((line.strip() for line in lines if line.strip() and not line.startswith('#')), "")
+            if first_paragraph:
+                analysis_parts.append(f"This content appears to be about: {first_paragraph[:300]}{'...' if len(first_paragraph) > 300 else ''}")
+            
+            if headings:
+                analysis_parts.append("\\n**Key sections include:**")
+                for heading in headings[:7]:
+                    clean_heading = heading.replace('#', '').strip()
+                    analysis_parts.append(f"- {clean_heading}")
+                    
+        else:
+            # Default comprehensive analysis
+            analysis_parts.append("## Content Overview")
+            analysis_parts.append(f"Document contains {word_count:,} words across {len(lines)} lines.")
+            
+            if headings:
+                analysis_parts.append("\\n**Structure:**")
+                for heading in headings[:5]:
+                    analysis_parts.append(f"- {heading.strip()}")
+            
+            # Include relevant excerpts
+            substantial_lines = [line.strip() for line in lines if len(line.strip()) > 100][:3]
+            if substantial_lines:
+                analysis_parts.append("\\n**Key Content:**")
+                for line in substantial_lines:
+                    analysis_parts.append(f"- {line[:200]}{'...' if len(line) > 200 else ''}")
+        
+        # Add metadata
+        analysis_parts.append(f"\\n---")
+        analysis_parts.append(f"*Analysis based on prompt: \"{prompt}\"*")
+        
+        return "\\n".join(analysis_parts)
         
     def _get_cache_key(self, url: str, prompt: str) -> str:
         """Generate a cache key from URL and prompt."""

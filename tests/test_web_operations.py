@@ -143,20 +143,58 @@ class TestWebOperations(unittest.TestCase):
         mock_response.text = """
         <html>
             <body>
-                <h1>Title</h1>
-                <p>This is a <strong>test</strong> paragraph.</p>
-                <a href="https://link.com">Link</a>
+                <h1>Main Title</h1>
+                <p>This is a test paragraph with important information.</p>
+                <a href="https://link.com">Important Link</a>
+                <h2>Section Two</h2>
+                <p>More content here with details.</p>
             </body>
         </html>
         """
         mock_response.headers = {'Content-Type': 'text/html; charset=utf-8'}
         mock_get.return_value = mock_response
         
-        result = self.web_ops.web_fetch("https://example.com", "Convert to markdown")
+        result = self.web_ops.web_fetch("https://example.com", "Summarize the main points")
         
-        # AI processing is mocked, but we can verify it was called
+        # Verify AI processing provides meaningful analysis
         self.assertIn('content', result)
-        self.assertIn("AI Analysis", result['content'])
+        self.assertIn("Summary", result['content'])
+        self.assertIn("Summarize the main points", result['content'])  # Should include the prompt
+        
+    @patch('requests.get')
+    def test_web_fetch_ai_processing_types(self, mock_get):
+        """Test different types of AI processing based on prompts."""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.url = "https://example.com"
+        mock_response.text = """
+        <html>
+            <body>
+                <h1>API Documentation</h1>
+                <p>This API provides access to user data.</p>
+                <h2>Authentication</h2>
+                <p>Use API keys for authentication.</p>
+                <a href="https://api.example.com">API Endpoint</a>
+            </body>
+        </html>
+        """
+        mock_response.headers = {'Content-Type': 'text/html; charset=utf-8'}
+        mock_get.return_value = mock_response
+        
+        # Test extraction prompt
+        result = self.web_ops.web_fetch("https://example.com", "Extract all headings from this page")
+        self.assertIn("Extracted Information", result['content'])
+        self.assertIn("API Documentation", result['content'])
+        
+        # Test analysis prompt
+        result = self.web_ops.web_fetch("https://example.com", "Analyze the structure of this documentation")
+        self.assertIn("Content Analysis", result['content'])
+        self.assertIn("Document Structure", result['content'])
+        
+        # Test explanation prompt
+        result = self.web_ops.web_fetch("https://example.com", "What is this page about?")
+        self.assertIn("Content Description", result['content'])
+        self.assertIn("appears to be about", result['content'])
         
     @patch('requests.get')
     def test_web_fetch_request_error(self, mock_get):
