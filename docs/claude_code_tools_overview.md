@@ -10,7 +10,6 @@
   Search & Navigation:
   - Glob - Find files by pattern matching
   - Grep - Search file contents with regex
-  - Task - Launch agents for complex searches
 
   Command Execution:
   - Bash - Execute shell commands with timeout
@@ -24,6 +23,7 @@
   - WebSearch - Search the web
 
   Planning & Organization:
+  - Task - Launch agents for complex searches
   - TodoWrite - Create and manage task lists
   - exit_plan_mode - Exit planning mode when ready to code
 
