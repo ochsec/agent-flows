@@ -15,15 +15,16 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-# Import our OpenRouter client
+# Import our OpenRouter client and GitHub client
 sys.path.append(str(Path(__file__).parent.parent.parent))
 from openrouter_client import OpenRouterClient, WorkflowType, OpenRouterModels
+from github_client import GitHubClient
 
 
 class OpenRouterPRReviewer:
     """PR reviewer using OpenRouter API"""
     
-    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
+    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None, github_token: Optional[str] = None):
         self.client = OpenRouterClient(
             api_key=api_key,
             workflow_type=WorkflowType.CODE_REVIEW
@@ -32,21 +33,42 @@ class OpenRouterPRReviewer:
         if model:
             self.client.default_model.name = model
         
+        # Initialize GitHub client
+        self.github_client = GitHubClient(token=github_token)
+        
         self.logger = logging.getLogger(__name__)
         self.logger.info(f"OpenRouter PR Reviewer initialized with model: {self.client.default_model.name}")
+        self.logger.info("GitHub client initialized for PR access")
     
     def review_pr(self, pr_number: int, repository: str = "", custom_instructions: str = "") -> str:
         """Review a PR using OpenRouter API and return the result"""
         
+        # Fetch PR details from GitHub
+        if repository and repository != "current-repo":
+            if "/" not in repository:
+                raise ValueError("Repository must be in format 'owner/repo'")
+            owner, repo = repository.split("/", 1)
+        else:
+            raise ValueError("Repository must be specified in format 'owner/repo'")
+        
+        self.logger.info(f"Fetching PR #{pr_number} from {owner}/{repo}")
+        pr_details = self.github_client.get_pr_details(owner, repo, pr_number)
+        
+        if not pr_details.get("success"):
+            error_msg = pr_details.get("error", "Unknown error")
+            if pr_details.get("status_code") == 404:
+                error_msg = f"PR #{pr_number} not found in {repository}. Check the PR number and repository name."
+            elif pr_details.get("status_code") == 401:
+                error_msg = "GitHub authentication failed. Check your GITHUB_TOKEN."
+            raise Exception(error_msg)
+        
+        # Format PR data for review
+        pr_context = self.github_client.format_pr_for_review(pr_details)
+        
         # Create comprehensive review prompt
-        prompt = f"""Please provide a comprehensive code review for GitHub PR #{pr_number} in repository {repository if repository != "current-repo" else "this repository"}.
+        prompt = f"""{pr_context}
 
-IMPORTANT: You need to fetch and analyze the actual PR content. Use web search or GitHub integration to:
-1. Access the PR details, description, and changes
-2. Review the actual code changes in the diff
-3. Understand the context and purpose of the changes
-
-Please analyze the pull request and provide detailed feedback covering:
+Please analyze this pull request and provide detailed feedback covering:
 
 ## Code Quality & Best Practices
 - Code structure and organization
@@ -172,10 +194,11 @@ def main():
         os.chdir(original_cwd)
     
     parser = argparse.ArgumentParser(description="PR Review using OpenRouter API")
-    parser.add_argument("pr_number", type=int, help="Pull request number to review")
+    parser.add_argument("pr_number", type=int, nargs='?', help="Pull request number to review")
     parser.add_argument("--repository", help="Repository in format owner/repo (defaults to current repo)")
     parser.add_argument("--model", help="OpenRouter model to use (e.g., anthropic/claude-3.5-sonnet)")
     parser.add_argument("--api-key", help="OpenRouter API key (or set OPENROUTER_API_KEY env var)")
+    parser.add_argument("--github-token", help="GitHub token (or set GITHUB_TOKEN env var)")
     parser.add_argument("--instructions", help="Additional review instructions")
     parser.add_argument("--output", "-o", help="Output directory for review file (default: current directory)")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose logging")
@@ -197,11 +220,22 @@ def main():
             print()
         return
     
-    # Get OpenRouter API key from args or environment
+    # Check if pr_number is provided when not listing models
+    if args.pr_number is None:
+        parser.error("pr_number is required when not using --list-models")
+    
+    # Get API keys from args or environment
     api_key = args.api_key or os.getenv("OPENROUTER_API_KEY")
     if not api_key:
         print("❌ Error: OpenRouter API key required.")
         print("   Set OPENROUTER_API_KEY environment variable or use --api-key")
+        sys.exit(1)
+    
+    github_token = args.github_token or os.getenv("GITHUB_TOKEN")
+    if not github_token:
+        print("❌ Error: GitHub token required for PR access.")
+        print("   Set GITHUB_TOKEN environment variable or use --github-token")
+        print("   Get token from: https://github.com/settings/tokens")
         sys.exit(1)
     
     # Configure logging
@@ -212,8 +246,13 @@ def main():
     )
     
     # Initialize reviewer
-    reviewer = OpenRouterPRReviewer(model=args.model, api_key=api_key)
-    repository = args.repository or "current-repo"
+    reviewer = OpenRouterPRReviewer(model=args.model, api_key=api_key, github_token=github_token)
+    repository = args.repository
+    
+    if not repository:
+        print("❌ Error: Repository must be specified in format 'owner/repo'")
+        print("   Example: --repository ochsec/agent-flows")
+        sys.exit(1)
     
     try:
         # Estimate cost if requested
