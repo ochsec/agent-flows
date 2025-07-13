@@ -1,13 +1,42 @@
 import unittest
+import os
+import json
+import tempfile
+from unittest.mock import patch, MagicMock
 from datetime import datetime
-from tools.planning_organization import PlanningOrganization, TaskStatus, TaskPriority
+
+# Add parent directory to path
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from tools.planning_organization import (
+    PlanningOrganization, TaskStatus, TaskPriority, ThinkingLevel,
+    PlanTemplate, EnhancedTask, Plan
+)
 
 
 class TestPlanningOrganization(unittest.TestCase):
+    """Test cases for PlanningOrganization class."""
     
     def setUp(self):
         """Set up test fixtures."""
-        self.plan_org = PlanningOrganization()
+        self.temp_dir = tempfile.mkdtemp()
+        self.plan_org = PlanningOrganization(project_path=self.temp_dir)
+        
+    def tearDown(self):
+        """Clean up after each test."""
+        # Remove temporary directory
+        import shutil
+        shutil.rmtree(self.temp_dir)
+        
+    def test_initialization(self):
+        """Test proper initialization of PlanningOrganization."""
+        self.assertEqual(self.plan_org.project_path, self.temp_dir)
+        self.assertEqual(self.plan_org.state_file, os.path.join(self.temp_dir, '.claude_state.json'))
+        self.assertEqual(self.plan_org._todos, [])
+        self.assertEqual(self.plan_org._plans, [])
+        self.assertIsNone(self.plan_org._current_plan)
+        self.assertFalse(self.plan_org._plan_mode_active)
         
     def test_todo_write_basic(self):
         """Test basic todo writing functionality."""
@@ -302,6 +331,18 @@ class TestPlanningOrganization(unittest.TestCase):
         self.assertEqual(TaskPriority.MEDIUM.value, "medium")
         self.assertEqual(TaskPriority.LOW.value, "low")
         
+        # Test ThinkingLevel enum
+        self.assertEqual(ThinkingLevel.THINK.value, "think")
+        self.assertEqual(ThinkingLevel.THINK_HARD.value, "think_hard")
+        self.assertEqual(ThinkingLevel.THINK_HARDER.value, "think_harder")
+        self.assertEqual(ThinkingLevel.ULTRATHINK.value, "ultrathink")
+        
+        # Test PlanTemplate enum
+        self.assertEqual(PlanTemplate.FEATURE_DEVELOPMENT.value, "feature_development")
+        self.assertEqual(PlanTemplate.REFACTORING.value, "refactoring")
+        self.assertEqual(PlanTemplate.DEBUGGING.value, "debugging")
+        self.assertEqual(PlanTemplate.RESEARCH.value, "research")
+        
     def test_task_basic_execution(self):
         """Test basic task execution."""
         result = self.plan_org.task("search files", "Find all Python files in the project")
@@ -378,6 +419,276 @@ class TestPlanningOrganization(unittest.TestCase):
         
         # Different prompt should generate different agent ID
         self.assertNotEqual(result1['agent_id'], result3['agent_id'])
+        
+    def test_create_plan_from_template(self):
+        """Test plan creation from templates."""
+        context = {
+            "title": "Test Feature",
+            "description": "Implement a new test feature for the application"
+        }
+        
+        plan = self.plan_org.create_plan_from_template(
+            PlanTemplate.FEATURE_DEVELOPMENT.value,
+            context
+        )
+        
+        self.assertIsInstance(plan, Plan)
+        self.assertEqual(plan.title, "Test Feature")
+        self.assertEqual(plan.template_type, PlanTemplate.FEATURE_DEVELOPMENT.value)
+        self.assertGreater(len(plan.goals), 0)
+        self.assertGreater(len(plan.implementation_steps), 0)
+        self.assertIn(plan, self.plan_org._plans)
+        
+    def test_validate_plan(self):
+        """Test plan validation."""
+        # Valid plan
+        valid_plan = Plan(
+            id="plan1",
+            title="Valid Plan",
+            description="This is a valid plan description that is long enough",
+            goals=["Goal 1", "Goal 2"],
+            challenges=["Challenge 1"],
+            implementation_steps=[
+                {"step": 1, "description": "Step 1"},
+                {"step": 2, "description": "Step 2"}
+            ],
+            success_criteria=["Success criterion 1"]
+        )
+        
+        is_valid, errors = self.plan_org.validate_plan(valid_plan)
+        self.assertTrue(is_valid)
+        self.assertEqual(len(errors), 0)
+        
+        # Invalid plan - short title
+        invalid_plan = Plan(
+            id="plan2",
+            title="Bad",  # Too short
+            description="Short description too",  # Too short
+            goals=[],  # Empty
+            challenges=[],
+            implementation_steps=[],  # Empty
+            success_criteria=[]  # Empty
+        )
+        
+        is_valid, errors = self.plan_org.validate_plan(invalid_plan)
+        self.assertFalse(is_valid)
+        self.assertGreater(len(errors), 0)
+        self.assertTrue(any("title must be at least 5 characters" in err for err in errors))
+        
+    def test_interactive_planning_session(self):
+        """Test interactive planning session."""
+        result = self.plan_org.interactive_planning_session(
+            "Implement a new feature for user authentication with OAuth support"
+        )
+        
+        self.assertTrue(result["success"])
+        self.assertIn("plan_id", result)
+        self.assertIn("plan", result)
+        self.assertIn("is_valid", result)
+        self.assertIn("validation_errors", result)
+        self.assertTrue(self.plan_org._plan_mode_active)
+        self.assertIsNotNone(self.plan_org._current_plan)
+        
+    def test_refine_plan(self):
+        """Test plan refinement."""
+        # Create initial plan
+        session_result = self.plan_org.interactive_planning_session(
+            "Refactor the authentication module for better performance"
+        )
+        plan_id = session_result["plan_id"]
+        
+        # Refine the plan
+        refinements = {
+            "goals": ["Additional goal: Improve security"],
+            "implementation_steps": [
+                {"step": 7, "description": "Add security audit"}
+            ],
+            "thinking_level": ThinkingLevel.THINK_HARD.value
+        }
+        
+        result = self.plan_org.refine_plan(plan_id, refinements)
+        
+        self.assertTrue(result["success"])
+        self.assertEqual(result["version"], 2)
+        self.assertTrue(any("Improve security" in goal for goal in result["plan"]["goals"]))
+        self.assertEqual(result["plan"]["thinking_level"], ThinkingLevel.THINK_HARD.value)
+        
+    def test_set_thinking_budget(self):
+        """Test setting thinking budget levels."""
+        # Valid level
+        self.plan_org.set_thinking_budget(ThinkingLevel.ULTRATHINK.value)
+        self.assertEqual(self.plan_org._current_thinking_level, ThinkingLevel.ULTRATHINK.value)
+        
+        # Invalid level
+        with self.assertRaises(ValueError):
+            self.plan_org.set_thinking_budget("invalid_level")
+            
+    def test_execute_development_workflow(self):
+        """Test development workflow execution."""
+        result = self.plan_org.execute_development_workflow(
+            "Build a REST API for user management with CRUD operations"
+        )
+        
+        self.assertIn("workflow_id", result)
+        self.assertIn("phases", result)
+        self.assertIn("exploration", result["phases"])
+        self.assertIn("planning", result["phases"])
+        self.assertIn("implementation", result["phases"])
+        self.assertIn("review", result["phases"])
+        self.assertEqual(result["status"], "initiated")
+        
+        # Check exploration phase
+        exploration = result["phases"]["exploration"]
+        self.assertEqual(exploration["status"], TaskStatus.IN_PROGRESS.value)
+        self.assertIn("research", exploration["required_skills"])
+        
+    def test_custom_command_registration(self):
+        """Test custom command registration and execution."""
+        # Register command
+        reg_result = self.plan_org.register_custom_command(
+            "format_code",
+            "black {file_path} --line-length {line_length}",
+            "Format Python code with Black"
+        )
+        
+        self.assertTrue(reg_result["success"])
+        self.assertEqual(reg_result["command"], "format_code")
+        
+        # Execute command
+        exec_result = self.plan_org.execute_custom_command(
+            "format_code",
+            {"file_path": "test.py", "line_length": "88"}
+        )
+        
+        self.assertTrue(exec_result["success"])
+        self.assertEqual(
+            exec_result["executed_template"],
+            "black test.py --line-length 88"
+        )
+        
+        # Try to register duplicate
+        dup_result = self.plan_org.register_custom_command(
+            "format_code",
+            "duplicate",
+            "duplicate"
+        )
+        
+        self.assertFalse(dup_result["success"])
+        self.assertIn("already exists", dup_result["error"])
+        
+    def test_state_persistence(self):
+        """Test saving and loading state."""
+        # Create some state
+        todos = [
+            {
+                "id": "task1",
+                "content": "Persistent task",
+                "status": TaskStatus.COMPLETED.value,
+                "priority": TaskPriority.MEDIUM.value
+            }
+        ]
+        self.plan_org.todo_write(todos)
+        
+        # Create a plan
+        self.plan_org.interactive_planning_session("Test persistence")
+        
+        # Register a custom command
+        self.plan_org.register_custom_command(
+            "test_cmd",
+            "echo {message}",
+            "Test command"
+        )
+        
+        # Save state
+        self.plan_org.save_state()
+        
+        # Create new instance and verify state loaded
+        new_planner = PlanningOrganization(project_path=self.temp_dir)
+        
+        self.assertEqual(len(new_planner._todos), 1)
+        self.assertEqual(new_planner._todos[0]["content"], "Persistent task")
+        self.assertEqual(len(new_planner._plans), 1)
+        self.assertIn("test_cmd", new_planner._custom_commands)
+        
+    def test_track_planning_metrics(self):
+        """Test planning metrics tracking."""
+        # Create some tasks and plans
+        todos = [
+            {
+                "id": "1",
+                "content": "Task 1",
+                "status": TaskStatus.COMPLETED.value,
+                "priority": TaskPriority.HIGH.value
+            },
+            {
+                "id": "2",
+                "content": "Task 2",
+                "status": TaskStatus.PENDING.value,
+                "priority": TaskPriority.MEDIUM.value
+            },
+            {
+                "id": "3",
+                "content": "Task 3",
+                "status": TaskStatus.IN_PROGRESS.value,
+                "priority": TaskPriority.LOW.value
+            }
+        ]
+        self.plan_org.todo_write(todos)
+        
+        # Create a plan
+        self.plan_org.interactive_planning_session("Test metrics")
+        
+        # Get metrics
+        metrics = self.plan_org.track_planning_metrics()
+        
+        self.assertIn("task_metrics", metrics)
+        self.assertEqual(metrics["task_metrics"]["total"], 3)
+        self.assertEqual(metrics["task_metrics"]["completed"], 1)
+        self.assertEqual(metrics["task_metrics"]["pending"], 1)
+        self.assertEqual(metrics["task_metrics"]["in_progress"], 1)
+        self.assertEqual(metrics["task_metrics"]["completion_rate"], 1/3)
+        
+        self.assertIn("plan_metrics", metrics)
+        self.assertEqual(metrics["plan_metrics"]["total_plans"], 1)
+        self.assertEqual(metrics["plan_metrics"]["approved_plans"], 0)
+        
+    def test_enhanced_task_dataclass(self):
+        """Test EnhancedTask dataclass functionality."""
+        task = EnhancedTask(
+            id="test1",
+            content="Test enhanced task",
+            status=TaskStatus.PENDING.value,
+            priority=TaskPriority.HIGH.value,
+            estimated_duration=120,
+            required_skills=["python", "testing"],
+            dependencies=["task0"]
+        )
+        
+        self.assertEqual(task.id, "test1")
+        self.assertEqual(task.content, "Test enhanced task")
+        self.assertEqual(task.complexity_score, 1)
+        self.assertIsNone(task.completed_at)
+        self.assertIn("python", task.required_skills)
+        self.assertIn("task0", task.dependencies)
+        
+    def test_plan_dataclass(self):
+        """Test Plan dataclass functionality."""
+        plan = Plan(
+            id="plan1",
+            title="Test Plan",
+            description="This is a test plan description",
+            goals=["Goal 1", "Goal 2"],
+            challenges=["Challenge 1"],
+            implementation_steps=[{"step": 1, "description": "Step 1"}],
+            success_criteria=["Criterion 1"],
+            thinking_level=ThinkingLevel.THINK_HARD.value
+        )
+        
+        self.assertEqual(plan.id, "plan1")
+        self.assertEqual(plan.title, "Test Plan")
+        self.assertFalse(plan.approved)
+        self.assertEqual(plan.version, 1)
+        self.assertEqual(plan.thinking_level, ThinkingLevel.THINK_HARD.value)
 
 
 if __name__ == '__main__':
