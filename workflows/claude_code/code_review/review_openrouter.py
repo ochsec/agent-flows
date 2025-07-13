@@ -65,8 +65,16 @@ class OpenRouterPRReviewer:
         # Format PR data for review
         pr_context = self.github_client.format_pr_for_review(pr_details)
         
-        # Create comprehensive review prompt
+        # Create comprehensive review prompt with accuracy emphasis
         prompt = f"""{pr_context}
+
+CRITICAL INSTRUCTIONS FOR ACCURACY:
+1. ✅ ONLY report issues you can verify exist in the actual code shown
+2. ✅ Include exact file names and line numbers from the diff
+3. ✅ Quote the actual code when discussing issues
+4. ❌ Do NOT make assumptions about code not shown in the diff
+5. ❌ Do NOT suggest issues that might exist elsewhere
+6. ❌ Do NOT claim security issues without seeing the actual vulnerable code
 
 Please analyze this pull request and provide detailed feedback covering:
 
@@ -94,22 +102,20 @@ Please analyze this pull request and provide detailed feedback covering:
 - API documentation completeness
 
 ## Detailed Findings
-For each issue found, please provide:
-- File name and line number(s) where applicable
-- Issue description
-- Severity level (Critical/High/Medium/Low)
-- Specific recommendation for fix
-- Code example showing the problematic code and suggested improvement
+For each issue found, you MUST provide:
+- **Exact file name and line number** from the diff
+- **Quoted code snippet** showing the actual issue
+- **Severity level** (Critical/High/Medium/Low) with justification
+- **Specific fix** with before/after code examples
 
 ## Overall Assessment
-- Summary of key findings
-- Clear recommendation (Approve/Request Changes/Reject)
-- Priority issues that need immediate attention
-- Estimated time to address critical issues
+- Summary of **verified** findings only
+- Clear recommendation based on **actual issues found**
+- Priority of **confirmed** problems only
 
 {f"Additional instructions: {custom_instructions}" if custom_instructions else ""}
 
-Please be specific with file names and line numbers where applicable, and provide actionable recommendations for improvements.
+REMEMBER: Only comment on code you can actually see in the diff. If you suggest an issue exists, you must quote the exact code that demonstrates it.
 
 Format your response in clear markdown with proper headers, code blocks, and bullet points."""
 
