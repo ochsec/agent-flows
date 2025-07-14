@@ -1,5 +1,6 @@
 import requests
 import hashlib
+import os
 from urllib.parse import urlparse
 from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime, timedelta
@@ -134,7 +135,7 @@ class WebOperations:
     def web_search(self, query: str, allowed_domains: Optional[List[str]] = None, 
                    blocked_domains: Optional[List[str]] = None) -> List[Dict[str, Any]]:
         """
-        Search the web and return formatted search results.
+        Search the web using Perplexity API and return formatted search results.
         
         Args:
             query: The search query
@@ -147,51 +148,89 @@ class WebOperations:
                 - url: Result URL
                 - snippet: Brief description
                 - domain: Domain of the result
+                - content: Full analyzed content from Perplexity
                 
-        Note: This is a simulated implementation. Real implementation would
-              use an actual search API.
+        Uses Perplexity API for AI-powered search with source citations.
         """
         if len(query) < 2:
             raise ValueError("Query must be at least 2 characters long")
-            
-        # Simulate search results (in real implementation, this would call a search API)
-        mock_results = [
-            {
-                'title': f'Search result for "{query}" - Example 1',
-                'url': 'https://example.com/result1',
-                'snippet': f'This is a relevant result about {query}...',
-                'domain': 'example.com'
-            },
-            {
-                'title': f'Documentation: {query}',
-                'url': 'https://docs.example.com/topic',
-                'snippet': f'Official documentation covering {query} in detail...',
-                'domain': 'docs.example.com'
-            },
-            {
-                'title': f'Tutorial: Understanding {query}',
-                'url': 'https://tutorial.org/guide',
-                'snippet': f'A comprehensive guide to {query} with examples...',
-                'domain': 'tutorial.org'
-            }
-        ]
         
-        # Apply domain filtering
-        filtered_results = []
-        for result in mock_results:
-            domain = result['domain']
+        # Get Perplexity API key
+        api_key = os.getenv("PERPLEXITY_API_KEY")
+        if not api_key:
+            raise ValueError("PERPLEXITY_API_KEY environment variable required")
+        
+        try:
+            # Call Perplexity API
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
             
-            # Check blocked domains
-            if blocked_domains and domain in blocked_domains:
-                continue
-                
-            # Check allowed domains (if specified, only include those)
-            if allowed_domains and domain not in allowed_domains:
-                continue
-                
-            filtered_results.append(result)
+            payload = {
+                "model": "sonar-pro",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a helpful research assistant. Provide comprehensive information with source citations."
+                    },
+                    {
+                        "role": "user", 
+                        "content": f"Research and provide detailed information about: {query}. Include specific details, comparisons, and current information with source URLs."
+                    }
+                ]
+            }
             
-        return filtered_results
+            response = requests.post(
+                "https://api.perplexity.ai/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            response.raise_for_status()
+            
+            result = response.json()
+            content = result["choices"][0]["message"]["content"]
+            citations = result.get("citations", [])
+            
+            # Extract URLs from citations and content
+            search_results = []
+            
+            # Parse citations to create search results
+            for i, citation in enumerate(citations[:5]):  # Limit to top 5 sources
+                url = citation
+                domain = urlparse(url).netloc
+                
+                # Apply domain filtering
+                if blocked_domains and domain in blocked_domains:
+                    continue
+                if allowed_domains and domain not in allowed_domains:
+                    continue
+                
+                search_results.append({
+                    'title': f"Source {i+1}: {domain}",
+                    'url': url,
+                    'snippet': f"Information about {query} from {domain}",
+                    'domain': domain,
+                    'content': content  # Full Perplexity response
+                })
+            
+            # If no citations, create a single result with Perplexity content
+            if not search_results:
+                search_results.append({
+                    'title': f"Perplexity Research: {query}",
+                    'url': "https://perplexity.ai",
+                    'snippet': f"AI-powered research results for {query}",
+                    'domain': "perplexity.ai", 
+                    'content': content
+                })
+            
+            return search_results
+            
+        except requests.exceptions.RequestException as e:
+            raise requests.RequestException(f"Perplexity API search failed: {str(e)}")
+        except Exception as e:
+            raise Exception(f"Web search error: {str(e)}")
         
     def _process_with_ai(self, content: str, prompt: str) -> str:
         """
