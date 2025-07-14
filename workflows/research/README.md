@@ -38,7 +38,7 @@ export PERPLEXITY_API_KEY="your-perplexity-api-key"  # Optional for enhanced res
 
 3. **Verify Installation**:
 ```bash
-python workflows/claude_code/research_manager.py --help
+python workflows/research/research_manager.py --help
 ```
 
 ## Usage
@@ -47,19 +47,19 @@ python workflows/claude_code/research_manager.py --help
 
 ```bash
 # Basic usage
-python workflows/claude_code/research_manager.py "Vector databases in AI applications"
+python workflows/research/research_manager.py "Vector databases in AI applications"
 
 # With custom output folder
-python workflows/claude_code/research_manager.py "Machine learning deployment patterns" --output reports/ml
+python workflows/research/research_manager.py "Machine learning deployment patterns" --output reports/ml
 
 # With specific Claude model
-python workflows/claude_code/research_manager.py "Microservices architecture" --model opus
+python workflows/research/research_manager.py "Microservices architecture" --model opus
 ```
 
 ### Python API
 
 ```python
-from workflows.claude_code.research_manager import ResearchManagerWorkflow
+from workflows.research.research_manager import ResearchManagerWorkflow
 
 # Initialize workflow with Claude Code (default)
 workflow = ResearchManagerWorkflow(model="sonnet")
@@ -82,7 +82,7 @@ print(f"Report generated: {report_path}")
 ### Configuration
 
 ```python
-from workflows.claude_code.config import get_config
+from workflows.research.config import get_config
 
 # Use development configuration
 config = get_config("development")
@@ -183,14 +183,14 @@ config = {
 
 ### Research AI Architecture Patterns
 ```bash
-python workflows/claude_code/research_manager.py \
+python workflows/research/research_manager.py \
   "AI architecture patterns for scalable machine learning systems" \
   --output reports/ai_architecture
 ```
 
 ### Research Database Technologies
 ```bash
-python workflows/claude_code/research_manager.py \
+python workflows/research/research_manager.py \
   "Vector databases vs traditional databases for AI applications" \
   --output reports/databases \
   --model opus
@@ -219,7 +219,7 @@ python workflows/claude_code/research_manager.py \
 ### Debug Mode
 
 ```bash
-python workflows/claude_code/research_manager.py \
+python workflows/research/research_manager.py \
   "Your research topic" \
   --model haiku \
   --output debug_reports

@@ -334,9 +334,9 @@ To update the global installation after making changes:
 1. **Update the code** in your development directory
 2. **Copy updated files** to the global installation:
    ```bash
-   cp workflows/claude_code/research/research.py ~/.agent-flows/workflows/claude_code/research/
-   cp workflows/claude_code/code_review/review.py ~/.agent-flows/workflows/claude_code/code_review/
-   cp workflows/claude_code/jira_task/*.py ~/.agent-flows/workflows/claude_code/jira_task/
+   cp workflows/research/research.py ~/.agent-flows/workflows/research/
+   cp workflows/code_review/review.py ~/.agent-flows/workflows/code_review/
+   cp workflows/jira_task/*.py ~/.agent-flows/workflows/jira_task/
    ```
 3. **Test the changes** by running the `research`, `review`, or `jira_task` commands
 

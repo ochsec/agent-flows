@@ -10,7 +10,7 @@ This report presents a comprehensive technical strategy for implementing a JIRA 
 
 **Key Technical Findings:**
 - The repository provides a clean slate for JIRA integration with no existing JIRA code
-- Strong architectural patterns exist in `/workflows/claude_code/` that can be adapted
+- Strong architectural patterns exist in `/workflows/` that can be adapted
 - Direct Python API integration provides simpler, more maintainable solution than MCP servers
 - Modern 2025 authentication standards (API tokens, OAuth 2.0) with secure credential management
 - Critical API migration requirements for August 2025 (`/rest/api/3/search/jql`)
@@ -915,9 +915,9 @@ class ResilientJIRAClient:
 3. **Repository Integration**
    ```python
    # Add JIRA workflow to existing structure
-   # /workflows/claude_code/jira/jira_workflow.py
-   # /workflows/claude_code/jira/config.py
-   # /workflows/claude_code/jira/example.py
+   # /workflows/jira_task/jira_workflow.py
+   # /workflows/jira_task/config.py
+   # /workflows/jira_task/example.py
    ```
 
 ## Command Line Usage
@@ -1008,7 +1008,7 @@ The Phase 5 implementation leverages the **Orchestrator mode** (`@modes/orchestr
 
 #### Claude Code Mode Execution Pattern
 
-Following the research workflow pattern from `@workflows/claude_code/research/research.py`:
+Following the research workflow pattern from `@workflows/research/research.py`:
 
 ```python
 class ClaudeCodeModeExecutor:

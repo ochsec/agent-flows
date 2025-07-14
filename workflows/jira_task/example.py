@@ -12,7 +12,7 @@ from pathlib import Path
 # Add the parent directory to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
-from workflows.claude_code.jira_task import (
+from workflows.jira_task import (
     JiraConfig, 
     load_jira_config, 
     create_sample_env_file,
@@ -61,7 +61,7 @@ def test_git_integration():
     print("\\n🌿 Testing Git Integration...")
     
     try:
-        from workflows.claude_code.jira_task.git_integration import GitIntegration
+        from workflows.jira_task.git_integration import GitIntegration
         
         git = GitIntegration()
         current_branch = git.get_current_branch()

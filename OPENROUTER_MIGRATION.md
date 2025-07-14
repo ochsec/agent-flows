@@ -31,13 +31,13 @@ export OPENROUTER_API_KEY="your-api-key-here"
 #### Option A: Use New OpenRouter Workflows (Recommended)
 ```bash
 # Research workflow
-python workflows/claude_code/research/research_openrouter.py "your research topic"
+python workflows/research/research_openrouter.py "your research topic"
 
 # Code review workflow  
-python workflows/claude_code/code_review/review_openrouter.py 123 --repository owner/repo
+python workflows/code_review/review_openrouter.py 123 --repository owner/repo
 
 # JIRA task workflow
-python workflows/claude_code/jira_task/enhanced_workflow_openrouter.py PROJ-123 "implement feature"
+python workflows/jira_task/enhanced_workflow_openrouter.py PROJ-123 "implement feature"
 ```
 
 #### Option B: Replace Claude Code Client in Existing Workflows
@@ -97,12 +97,12 @@ response = result["content"]
 
 **Old Command:**
 ```bash
-python workflows/claude_code/research/research.py "AI trends 2024"
+python workflows/research/research.py "AI trends 2024"
 ```
 
 **New Command:**
 ```bash
-python workflows/claude_code/research/research_openrouter.py "AI trends 2024"
+python workflows/research/research_openrouter.py "AI trends 2024"
 ```
 
 **Key Differences:**
@@ -116,12 +116,12 @@ python workflows/claude_code/research/research_openrouter.py "AI trends 2024"
 
 **Old Command:**
 ```bash
-python workflows/claude_code/code_review/review.py 123 --repository owner/repo
+python workflows/code_review/review.py 123 --repository owner/repo
 ```
 
 **New Command:**
 ```bash
-python workflows/claude_code/code_review/review_openrouter.py 123 --repository owner/repo
+python workflows/code_review/review_openrouter.py 123 --repository owner/repo
 ```
 
 **Enhanced Features:**
@@ -133,12 +133,12 @@ python workflows/claude_code/code_review/review_openrouter.py 123 --repository o
 
 **Old Command:**
 ```bash
-python workflows/claude_code/jira_task/enhanced_workflow.py
+python workflows/jira_task/enhanced_workflow.py
 ```
 
 **New Command:**
 ```bash
-python workflows/claude_code/jira_task/enhanced_workflow_openrouter.py PROJ-123 "implement user authentication"
+python workflows/jira_task/enhanced_workflow_openrouter.py PROJ-123 "implement user authentication"
 ```
 
 **Enhanced Features:**
@@ -260,5 +260,5 @@ code_result = code_client.execute_prompt("code review prompt")
 
 **Ready to migrate?** Start with the research workflow using:
 ```bash
-python workflows/claude_code/research/research_openrouter.py "test migration" --list-models
+python workflows/research/research_openrouter.py "test migration" --list-models
 ```

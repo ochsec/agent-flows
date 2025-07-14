@@ -27,10 +27,10 @@ For detailed installation instructions, see [Global Installation Guide](global-i
 ## Agent Workflows
 
 ### Research
-- [Research Manager Workflow](workflows/claude_code/research/README.md) - Comprehensive multi-agent research workflow using Claude Code integration for conducting rigorous research and generating technical reports
+- [Research Manager Workflow](workflows/research/README.md) - Comprehensive multi-agent research workflow using Claude Code integration for conducting rigorous research and generating technical reports
 
 ### Code Review
-- [Simple PR Review Workflow](workflows/claude_code/code_review/README.md) - Straightforward code review workflow leveraging Claude Code's GitHub integration for comprehensive pull request analysis
+- [Simple PR Review Workflow](workflows/code_review/README.md) - Straightforward code review workflow leveraging Claude Code's GitHub integration for comprehensive pull request analysis
 
 ## Agent Modes
 

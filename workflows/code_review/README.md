@@ -46,28 +46,28 @@ pip install -r requirements.txt  # Only needed for Python imports
 
 ```bash
 # Basic PR review
-python workflows/claude_code/code_review/pr_reviewer.py 123
+python workflows/code_review/pr_reviewer.py 123
 
 # Review PR in specific repository
-python workflows/claude_code/code_review/pr_reviewer.py 123 \
+python workflows/code_review/pr_reviewer.py 123 \
   --repository owner/repo
 
 # Use different Claude model
-python workflows/claude_code/code_review/pr_reviewer.py 123 \
+python workflows/code_review/pr_reviewer.py 123 \
   --model opus
 
 # Add custom review instructions
-python workflows/claude_code/code_review/pr_reviewer.py 123 \
+python workflows/code_review/pr_reviewer.py 123 \
   --instructions "Focus on security and performance"
 
 # Enable verbose logging
-python workflows/claude_code/code_review/pr_reviewer.py 123 --verbose
+python workflows/code_review/pr_reviewer.py 123 --verbose
 ```
 
 ### Python API
 
 ```python
-from workflows.claude_code.code_review.pr_reviewer import SimplePRReviewer
+from workflows.code_review.pr_reviewer import SimplePRReviewer
 
 # Initialize reviewer
 reviewer = SimplePRReviewer(model="sonnet")

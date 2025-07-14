@@ -26,4 +26,4 @@ export ORIGINAL_PWD="$ORIGINAL_PWD"
 cd "$ORIGINAL_PWD"
 
 # Run with agent-flows directory in Python path
-PYTHONPATH="$AGENT_FLOWS_DIR" python -m workflows.claude_code.jira_task.jira_task "$@"
+PYTHONPATH="$AGENT_FLOWS_DIR" python -m workflows.jira_task.jira_task "$@"

@@ -22,4 +22,4 @@ cd "$AGENT_FLOWS_DIR"
 # Set the original working directory as an environment variable
 export ORIGINAL_PWD="$ORIGINAL_PWD"
 
-python "workflows/claude_code/research/research.py" "$@"
+python "workflows/research/research.py" "$@"

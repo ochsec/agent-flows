@@ -5,7 +5,7 @@ Example usage of the Research Manager Workflow with Claude Code
 
 import os
 from dotenv import load_dotenv
-from workflows.claude_code.research.research import ResearchManagerWorkflow
+from workflows.research.research import ResearchManagerWorkflow
 
 def main():
     # Load environment variables
