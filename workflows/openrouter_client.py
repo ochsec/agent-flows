@@ -76,27 +76,27 @@ class OpenRouterModels:
         description="Specialized for code generation and review"
     )
     
-    PERPLEXITY_SONAR = ModelConfig(
-        name="perplexity/llama-3.1-sonar-large-128k-online",
-        max_tokens=4096,
-        context_window=128000,
-        cost_per_1k_tokens=0.001,
-        best_for=[WorkflowType.RESEARCH],
-        description="Excellent for research with web access capabilities"
+    CLAUDE_SONNET_35 = ModelConfig(
+        name="anthropic/claude-3.5-sonnet",
+        max_tokens=8192,
+        context_window=200000,
+        cost_per_1k_tokens=0.003,
+        best_for=[WorkflowType.RESEARCH, WorkflowType.CODE_REVIEW, WorkflowType.JIRA_TASK],
+        description="Excellent for research, code review, and complex reasoning tasks"
     )
 
     @classmethod
     def get_recommended_models(cls, workflow_type: WorkflowType) -> List[ModelConfig]:
         """Get recommended models for a specific workflow type."""
         all_models = [cls.CLAUDE_SONNET, cls.GPT4_TURBO, cls.CLAUDE_HAIKU, 
-                     cls.DEEPSEEK_CODER, cls.PERPLEXITY_SONAR]
+                     cls.DEEPSEEK_CODER, cls.CLAUDE_SONNET_35]
         return [model for model in all_models if workflow_type in model.best_for]
 
     @classmethod
     def get_default_model(cls, workflow_type: WorkflowType) -> ModelConfig:
         """Get the default recommended model for a workflow type."""
         recommendations = {
-            WorkflowType.RESEARCH: cls.PERPLEXITY_SONAR,
+            WorkflowType.RESEARCH: cls.CLAUDE_SONNET_35,
             WorkflowType.CODE_REVIEW: cls.CLAUDE_SONNET,
             WorkflowType.JIRA_TASK: cls.CLAUDE_SONNET,
             WorkflowType.GENERAL: cls.CLAUDE_HAIKU
@@ -238,7 +238,7 @@ class OpenRouterClient:
             OpenRouterModels.GPT4_TURBO, 
             OpenRouterModels.CLAUDE_HAIKU,
             OpenRouterModels.DEEPSEEK_CODER,
-            OpenRouterModels.PERPLEXITY_SONAR
+            OpenRouterModels.CLAUDE_SONNET_35
         ]
         
         for model_config in all_models:

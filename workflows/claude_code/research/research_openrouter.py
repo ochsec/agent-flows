@@ -14,10 +14,13 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-# Import our OpenRouter client
+# Import our OpenRouter client and web operations
 import sys
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(Path(__file__).parent.parent.parent))
 from openrouter_client import OpenRouterClient, WorkflowType, OpenRouterModels
+tools_path = "/Users/chrisochsenreither/github/agent-flows/tools"
+sys.path.append(tools_path)
+from web_operations import WebOperations
 
 
 class ResearchContext(BaseModel):
@@ -91,7 +94,7 @@ _(This section will be populated by the Writer mode)_
 
 
 class OpenRouterExecutor:
-    """Handles execution of OpenRouter API calls"""
+    """Handles execution of OpenRouter API calls with web search capabilities"""
     
     def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
         self.client = OpenRouterClient(
@@ -102,7 +105,11 @@ class OpenRouterExecutor:
         if model:
             self.client.default_model.name = model
         
+        # Initialize web operations for research
+        self.web_ops = WebOperations()
+        
         print(f"🔧 OpenRouter client initialized with model: {self.client.default_model.name}")
+        print(f"🌐 Web search capabilities enabled")
     
     def execute_prompt(self, prompt: str, model: Optional[str] = None) -> str:
         """Execute a prompt using OpenRouter API"""
@@ -159,7 +166,7 @@ Please complete this task according to your role and instructions above."""
 
 
 class ResearcherAgent(SpecializedAgent):
-    """Specialized agent for information gathering"""
+    """Specialized agent for information gathering with web search"""
     
     def __init__(self, executor: OpenRouterExecutor):
         role_definition = """You are in Researcher Mode, an expert information gatherer 
@@ -167,18 +174,92 @@ specialized in discovering, collecting, and analyzing information related to spe
         
         instructions = """Your role is to gather and analyze high-quality information on assigned research topics.
 1. Read any existing research context from research_context.md
-2. Use web search capabilities to conduct comprehensive information gathering
-   - Gather information from multiple authoritative sources
-   - Each search should target a specific aspect, use case, or question about the topic
-   - Continue researching until you have comprehensive coverage of all important aspects
-3. Evaluate information sources for credibility, currency, objectivity, and accuracy
-4. Collect and organize information systematically
-5. Track all sources with complete citations
+2. Conduct systematic web research:
+   - Search for authoritative sources on the topic
+   - Target specific aspects and use cases
+   - Look for official documentation, comparison studies, benchmarks
+   - Find expert opinions and real-world case studies
+3. For each search result, fetch and analyze the content
+4. Evaluate sources for credibility, currency, and accuracy
+5. Organize information systematically with proper citations
 6. Note conflicting information and identify gaps
-7. Format findings with clear headings
-8. APPEND findings to research_context.md in the Research Findings section"""
+7. Format findings with clear headings and evidence
+8. APPEND findings to research_context.md in the Research Findings section
+
+You have access to web search and web fetch capabilities. Use them extensively."""
         
         super().__init__("Researcher", role_definition, instructions, executor)
+    
+    def perform_research(self, topic: str) -> str:
+        """Perform comprehensive web research on a topic"""
+        print(f"🔍 Starting web research on: {topic}")
+        
+        # Define search queries for comprehensive coverage
+        search_queries = [
+            f"{topic} comparison benchmark 2024",
+            f"{topic} best models evaluation",
+            f"{topic} performance analysis",
+            f"{topic} official documentation",
+            f"{topic} expert review guide"
+        ]
+        
+        research_results = []
+        
+        for query in search_queries:
+            print(f"🔎 Searching: {query}")
+            try:
+                # Perform web search
+                search_results = self.executor.web_ops.web_search(query)
+                
+                # Fetch and analyze top results
+                for result in search_results[:2]:  # Top 2 results per query
+                    try:
+                        print(f"📄 Fetching: {result['title']}")
+                        fetch_result = self.executor.web_ops.web_fetch(
+                            result['url'], 
+                            f"Extract key information about {topic} from this content. Focus on factual data, comparisons, and specific recommendations."
+                        )
+                        
+                        research_results.append({
+                            'query': query,
+                            'source': result['title'],
+                            'url': result['url'],
+                            'content': fetch_result['content']
+                        })
+                        
+                    except Exception as e:
+                        print(f"⚠️ Failed to fetch {result['url']}: {e}")
+                        continue
+                        
+            except Exception as e:
+                print(f"⚠️ Search failed for '{query}': {e}")
+                continue
+        
+        # Compile research findings
+        compiled_research = self._compile_research_findings(topic, research_results)
+        return compiled_research
+    
+    def _compile_research_findings(self, topic: str, results: List[Dict]) -> str:
+        """Compile research results into organized findings"""
+        compiled = f"# Research Findings: {topic}\n\n"
+        
+        compiled += f"## Research Overview\n"
+        compiled += f"Conducted {len(results)} content analyses across multiple sources.\n\n"
+        
+        compiled += f"## Key Findings\n\n"
+        
+        for i, result in enumerate(results, 1):
+            compiled += f"### Source {i}: {result['source']}\n"
+            compiled += f"**URL:** {result['url']}\n"
+            compiled += f"**Search Query:** {result['query']}\n\n"
+            compiled += f"**Analysis:**\n{result['content']}\n\n"
+            compiled += "---\n\n"
+        
+        compiled += f"## Sources Summary\n"
+        for result in results:
+            compiled += f"- [{result['source']}]({result['url']})\n"
+        
+        return compiled
 
 
 class SynthesizerAgent(SpecializedAgent):
@@ -350,19 +431,11 @@ IMPORTANT: You must read from research_context.md to access all previous work, b
         self.context.initialize(research_topic)
         self.update_progress("initialize", f"Initialized research context for: {research_topic}")
         
-        # Step 2: Delegate to Researcher
-        print("🔍 Delegating to Researcher...")
-        research_task = """Conduct comprehensive research on the given topic.
+        # Step 2: Delegate to Researcher with web search
+        print("🔍 Delegating to Researcher with web search capabilities...")
         
-Please gather high-quality information from multiple sources, evaluate credibility,
-and organize findings systematically. Focus on collecting factual data, expert opinions,
-current developments, and identifying any conflicting information or gaps.
-
-After completing your research, append your findings to research_context.md in the 
-Research Findings section."""
-        
-        contextual_prompt = self.create_contextual_prompt(research_task, "research")
-        researcher_result = self.researcher.execute_task(contextual_prompt)
+        # Use the new research method that includes web search
+        researcher_result = self.researcher.perform_research(research_topic)
         self.context.append_section("Research Findings", researcher_result)
         
         # Extract summary for manager's context
