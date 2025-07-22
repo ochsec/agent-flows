@@ -17,10 +17,10 @@ from pydantic import BaseModel, Field
 # Import our OpenRouter client and web operations
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from openrouter_client import OpenRouterClient, WorkflowType, OpenRouterModels
+from workflows.openrouter_client import OpenRouterClient, WorkflowType, OpenRouterModels
 tools_path = "/Users/chrisochsenreither/github/agent-flows/tools"
 sys.path.append(tools_path)
-from web_operations import WebOperations
+from tools.web_operations import WebOperations
 
 
 class ResearchContext(BaseModel):
@@ -172,19 +172,22 @@ class ResearcherAgent(SpecializedAgent):
         role_definition = """You are in Researcher Mode, an expert information gatherer 
 specialized in discovering, collecting, and analyzing information related to specific research topics."""
         
-        instructions = """Your role is to gather and analyze high-quality information on assigned research topics.
+        instructions = """Your role is to gather and analyze comprehensive information on assigned research topics.
 1. Read any existing research context from research_context.md
-2. Conduct systematic web research:
-   - Search for authoritative sources on the topic
-   - Target specific aspects and use cases
-   - Look for official documentation, comparison studies, benchmarks
-   - Find expert opinions and real-world case studies
-3. For each search result, fetch and analyze the content
-4. Evaluate sources for credibility, currency, and accuracy
-5. Organize information systematically with proper citations
-6. Note conflicting information and identify gaps
-7. Format findings with clear headings and evidence
-8. APPEND findings to research_context.md in the Research Findings section
+2. Carefully analyze the research prompt to identify ALL dimensions that need investigation
+3. Conduct systematic web research that addresses every aspect mentioned or implied in the prompt:
+   - Search for authoritative sources covering all requested dimensions
+   - Adapt your search strategy based on the specific requirements
+   - Go beyond surface-level information to find detailed insights
+   - Ensure comprehensive coverage of the topic from multiple perspectives
+4. For each search result, fetch and analyze the content
+5. Evaluate sources for credibility, currency, and accuracy
+6. Organize information systematically with proper citations
+7. Note conflicting information and identify gaps
+8. Format findings with clear headings organized by the dimensions identified
+9. APPEND findings to research_context.md in the Research Findings section
+
+IMPORTANT: Your research scope should be determined by the prompt requirements, not by predefined categories. Be thorough in addressing ALL aspects requested.
 
 You have access to web search and web fetch capabilities. Use them extensively."""
         
@@ -506,18 +509,19 @@ CRITICAL: The entire report must be in proper Markdown format with:
 - Bold (**text**) and italic (*text*) formatting
 - Proper link formatting [text](url)
 
-REQUIRED CONTENT WITH TECHNICAL DEPTH:
-- Executive summary with technical overview
+REQUIRED CONTENT:
+- Executive summary that addresses ALL dimensions covered in the research
 - Detailed methodology section explaining research approach
-- Comprehensive findings with:
-  * Granular technical explanations
-  * Code snippets in proper markdown code blocks
-  * Architectural details and system design
-  * Performance metrics in tables
-  * Scalability considerations and limitations
-- In-depth analysis with performance metrics and scalability considerations
-- Technical implications and future research directions
+- Comprehensive findings organized by the dimensions that were researched:
+  * Each dimension should have appropriate depth and detail
+  * Include data, metrics, and evidence where applicable
+  * Use tables, lists, and formatting for clarity
+  * Provide balanced coverage of different perspectives
+- In-depth analysis that synthesizes findings across all dimensions
+- Implications and recommendations based on the complete picture
 - Comprehensive references with proper markdown links
+
+IMPORTANT: The report structure and emphasis should reflect the actual research conducted and the dimensions that were investigated. Do not force a technical-only perspective if the research covered broader aspects.
 
 The output must be publication-ready markdown that renders beautifully in any markdown viewer.
 Do NOT save the report yourself - just return the complete markdown content."""
