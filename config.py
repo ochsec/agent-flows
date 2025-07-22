@@ -77,6 +77,14 @@ class AgentFlowsConfig:
             },
             "perplexity": {
                 "api_key": "your_perplexity_api_key_here"
+            },
+            "openrouter": {
+                "api_key": "your_openrouter_api_key_here",
+                "site_url": "https://github.com/yourusername/yourproject",
+                "site_name": "Your Project Name"
+            },
+            "github": {
+                "token": "your_github_token_here"
             }
         }
         
@@ -198,6 +206,103 @@ class AgentFlowsConfig:
         """Check if Perplexity is configured"""
         return self.get_perplexity_api_key() is not None
     
+    # =======================
+    # OpenRouter Configuration
+    # =======================
+    
+    def configure_openrouter_interactive(self):
+        """Interactive OpenRouter configuration setup"""
+        print("🔧 OpenRouter API Configuration Setup")
+        
+        config_data = self._load_config()
+        current_openrouter = config_data.get('openrouter', {})
+        
+        current_key = current_openrouter.get('api_key', '')
+        if current_key:
+            print(f"Current API key: {current_key[:8]}...{current_key[-4:] if len(current_key) > 12 else '*'*4}")
+        
+        api_key = getpass("OpenRouter API Key (input hidden): ").strip()
+        if not api_key and not current_key:
+            print("❌ OpenRouter API Key is required")
+            return False
+        
+        # Get site info
+        current_site_url = current_openrouter.get('site_url', '')
+        if current_site_url:
+            print(f"Current site URL: {current_site_url}")
+        
+        site_url = input("Site URL (optional): ").strip()
+        
+        current_site_name = current_openrouter.get('site_name', '')
+        if current_site_name:
+            print(f"Current site name: {current_site_name}")
+        
+        site_name = input("Site Name (optional): ").strip()
+        
+        if 'openrouter' not in config_data:
+            config_data['openrouter'] = {}
+        
+        config_data['openrouter'].update({
+            'api_key': api_key or current_key,
+            'site_url': site_url or current_site_url,
+            'site_name': site_name or current_site_name
+        })
+        
+        self._save_config(config_data)
+        
+        print("\n✅ OpenRouter configuration saved successfully!")
+        return True
+    
+    def get_openrouter_config(self) -> Dict[str, Any]:
+        """Get OpenRouter configuration"""
+        config_data = self._load_config()
+        return config_data.get('openrouter', {})
+    
+    def is_openrouter_configured(self) -> bool:
+        """Check if OpenRouter is configured"""
+        openrouter_config = self.get_openrouter_config()
+        return bool(openrouter_config.get('api_key'))
+    
+    # =======================
+    # GitHub Configuration
+    # =======================
+    
+    def configure_github_interactive(self):
+        """Interactive GitHub configuration setup"""
+        print("🔧 GitHub Token Configuration Setup")
+        
+        current_token = self.get_github_token()
+        if current_token:
+            print(f"Current token: {current_token[:8]}...{current_token[-4:] if len(current_token) > 12 else '*'*4}")
+        
+        token = getpass("GitHub Token (input hidden): ").strip()
+        if not token and not current_token:
+            print("❌ GitHub Token is required")
+            return False
+        
+        if token:
+            config_data = self._load_config()
+            if 'github' not in config_data:
+                config_data['github'] = {}
+            
+            config_data['github']['token'] = token
+            self._save_config(config_data)
+            
+            print("\n✅ GitHub token saved successfully!")
+        else:
+            print("\n✅ Keeping existing GitHub token")
+        
+        return True
+    
+    def get_github_token(self) -> Optional[str]:
+        """Get GitHub token"""
+        config_data = self._load_config()
+        return config_data.get('github', {}).get('token')
+    
+    def is_github_configured(self) -> bool:
+        """Check if GitHub is configured"""
+        return self.get_github_token() is not None
+    
     # ===================
     # General Configuration
     # ===================
@@ -232,6 +337,32 @@ class AgentFlowsConfig:
                 self.configure_perplexity_interactive()
         
         print()
+        
+        # Configure OpenRouter
+        print("3️⃣  OpenRouter API Integration")
+        if self.is_openrouter_configured():
+            print("   ✅ Currently configured")
+            if input("   Reconfigure OpenRouter? (y/N): ").lower().startswith('y'):
+                self.configure_openrouter_interactive()
+        else:
+            print("   ❌ Not configured")
+            if input("   Configure OpenRouter now? (y/N): ").lower().startswith('y'):
+                self.configure_openrouter_interactive()
+        
+        print()
+        
+        # Configure GitHub
+        print("4️⃣  GitHub Token Integration")
+        if self.is_github_configured():
+            print("   ✅ Currently configured")
+            if input("   Reconfigure GitHub? (y/N): ").lower().startswith('y'):
+                self.configure_github_interactive()
+        else:
+            print("   ❌ Not configured")
+            if input("   Configure GitHub now? (y/N): ").lower().startswith('y'):
+                self.configure_github_interactive()
+        
+        print()
         print("✅ Configuration complete!")
         print(f"📁 Configuration stored in: {self.config_file}")
         print(f"💡 You can also edit the config file directly with any text editor")
@@ -255,15 +386,43 @@ class AgentFlowsConfig:
         perplexity_status = "✅ Configured" if self.is_perplexity_configured() else "❌ Not configured"
         print(f"Perplexity:    {perplexity_status}")
         
+        # OpenRouter status
+        openrouter_status = "✅ Configured" if self.is_openrouter_configured() else "❌ Not configured"
+        print(f"OpenRouter:    {openrouter_status}")
+        if self.is_openrouter_configured():
+            openrouter_config = self.get_openrouter_config()
+            if openrouter_config.get('site_url'):
+                print(f"   Site URL:   {openrouter_config.get('site_url')}")
+            if openrouter_config.get('site_name'):
+                print(f"   Site Name:  {openrouter_config.get('site_name')}")
+        
+        # GitHub status
+        github_status = "✅ Configured" if self.is_github_configured() else "❌ Not configured"
+        print(f"GitHub:        {github_status}")
+        
         print(f"\nConfig File:   {self.config_file}")
         
         # Show next steps
-        if not self.is_jira_configured() or not self.is_perplexity_configured():
+        unconfigured_services = []
+        if not self.is_jira_configured():
+            unconfigured_services.append("JIRA")
+        if not self.is_perplexity_configured():
+            unconfigured_services.append("Perplexity")
+        if not self.is_openrouter_configured():
+            unconfigured_services.append("OpenRouter")
+        if not self.is_github_configured():
+            unconfigured_services.append("GitHub")
+        
+        if unconfigured_services:
             print("\n💡 Next steps:")
-            if not self.is_jira_configured():
+            if "JIRA" in unconfigured_services:
                 print("   - Configure JIRA: python config.py configure --jira")
-            if not self.is_perplexity_configured():
+            if "Perplexity" in unconfigured_services:
                 print("   - Configure Perplexity: python config.py configure --perplexity")
+            if "OpenRouter" in unconfigured_services:
+                print("   - Configure OpenRouter: python config.py configure --openrouter")
+            if "GitHub" in unconfigured_services:
+                print("   - Configure GitHub: python config.py configure --github")
             print(f"   - Edit config directly: {self.config_file}")
     
     def show_sample_config(self):
@@ -280,9 +439,13 @@ project_key = "PROJ"  # Optional default project
 [perplexity]
 api_key = "your_perplexity_api_key_here"
 
-# Add more services here as needed
-# [github]
-# token = "your_github_token"
+[openrouter]
+api_key = "your_openrouter_api_key_here"
+site_url = "https://github.com/yourusername/yourproject"
+site_name = "Your Project Name"
+
+[github]
+token = "your_github_token_here"
 '''
         print("📝 Sample Configuration Format:")
         print(sample)
@@ -317,7 +480,11 @@ def main():
                        help="Configure only JIRA")
     parser.add_argument("--perplexity", action="store_true", 
                        help="Configure only Perplexity")
-    parser.add_argument("--service", choices=["jira", "perplexity"],
+    parser.add_argument("--openrouter", action="store_true", 
+                       help="Configure only OpenRouter")
+    parser.add_argument("--github", action="store_true", 
+                       help="Configure only GitHub")
+    parser.add_argument("--service", choices=["jira", "perplexity", "openrouter", "github"],
                        help="Reset specific service (for reset command)")
     
     args = parser.parse_args()
@@ -329,6 +496,10 @@ def main():
             config.configure_jira_interactive()
         elif args.perplexity:
             config.configure_perplexity_interactive()
+        elif args.openrouter:
+            config.configure_openrouter_interactive()
+        elif args.github:
+            config.configure_github_interactive()
         else:
             config.configure_interactive()
     elif args.command == "show":
