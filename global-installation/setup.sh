@@ -134,8 +134,9 @@ echo "6. Work on a JIRA issue: jira_task PROJ-123"
 echo
 echo -e "${BLUE}📝 Configuration:${NC}"
 echo "All service credentials are now managed through the unified config system:"
-echo "- Run 'configure' to set up JIRA and Perplexity API keys"
+echo "- Run 'configure' to set up JIRA, Perplexity, OpenRouter, and GitHub"
 echo "- Config is stored in ~/.agent-flows/config.toml"
 echo "- You can edit the TOML file directly or use the interactive setup"
+echo "- Supports migration from .env files during configuration"
 echo
 echo -e "${GREEN}✨ Happy researching!${NC}"
