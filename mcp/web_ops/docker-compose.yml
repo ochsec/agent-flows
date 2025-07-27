@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  web-ops-server:
+    build: .
+    image: web-ops-mcp-server:latest
+    container_name: web-ops-mcp
+    environment:
+      - PERPLEXITY_API_KEY=${PERPLEXITY_API_KEY:-}
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    # For MCP stdio communication
+    command: python server.py
+    
+    # Optional: expose for debugging/monitoring
+    # ports:
+    #   - "8080:8080"
+    
+    # Optional: volume for persistent cache
+    # volumes:
+    #   - ./cache:/app/cache

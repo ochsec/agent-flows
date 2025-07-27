@@ -248,3 +248,4 @@ mcp_servers.json
 example_reports/
 debug_reports/
 test_reports/
+.aider*
