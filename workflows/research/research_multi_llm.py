@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """
-Research Manager Workflow - OpenRouter Implementation
+Research Manager Workflow - Multi-LLM Implementation
 
-This module implements the research manager workflow using OpenRouter
-for multi-LLM access and task delegation.
+This module implements the research manager workflow with support for
+multiple LLM providers (OpenRouter and LM Studio).
 """
 
 import os
 import json
 from datetime import datetime
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Union
 from pathlib import Path
 
 from pydantic import BaseModel, Field
 
-# Import our OpenRouter client and web operations
+# Import our LLM clients
 import sys
 sys.path.append(str(Path(__file__).parent.parent.parent))
-from workflows.openrouter_client import OpenRouterClient, WorkflowType, OpenRouterModels
+from clients.llm_client import LLMClient, WorkflowType
+from clients.openrouter_client import OpenRouterClient
+from clients.lmstudio_client import LMStudioClient
+
+# Import web operations
 tools_path = "/Users/chrisochsenreither/github/agent-flows/tools"
 sys.path.append(tools_path)
 from tools.web_operations import WebOperations
@@ -37,7 +41,6 @@ class ResearchContext(BaseModel):
         """Initialize research context file (starts fresh for new research task)"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Start fresh for each new research task
         content = f"""# Research Task: {task_description}
 **Started:** {timestamp}
 
@@ -58,7 +61,6 @@ _(This section will be populated by the Writer mode)_
 
 """
         
-        # Overwrite any existing file to start fresh
         with open(self.file_path, 'w') as f:
             f.write(content)
     
@@ -80,49 +82,39 @@ _(This section will be populated by the Writer mode)_
         # Find the section and append
         section_marker = f"## {section_name}"
         if section_marker in current_content:
-            # Replace the section marker with marker + content
             updated_content = current_content.replace(
                 f"{section_marker}\n_(This section will be populated by",
                 f"{section_marker}\n{section_content}\n_(This section will be populated by"
             )
         else:
-            # Append at the end
             updated_content = current_content + section_content
         
         with open(self.file_path, 'w') as f:
             f.write(updated_content)
 
 
-class OpenRouterExecutor:
-    """Handles execution of OpenRouter API calls with web search capabilities"""
+class MultiLLMExecutor:
+    """Handles execution of LLM calls with web search capabilities"""
     
-    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
-        self.client = OpenRouterClient(
-            api_key=api_key,
-            workflow_type=WorkflowType.RESEARCH
-        )
-        # Override model if specified
-        if model:
-            self.client.default_model.name = model
-        
-        # Initialize web operations for research
+    def __init__(self, client: LLMClient):
+        self.client = client
         self.web_ops = WebOperations()
         
-        print(f"🔧 OpenRouter client initialized with model: {self.client.default_model.name}")
+        print(f"🔧 {client.get_provider_name()} client initialized with model: {client.default_model.name}")
         print(f"🌐 Web search capabilities enabled")
     
     def execute_prompt(self, prompt: str, model: Optional[str] = None) -> str:
-        """Execute a prompt using OpenRouter API"""
-        print(f"🚀 Executing OpenRouter request...")
+        """Execute a prompt using the configured LLM client"""
+        print(f"🚀 Executing {self.client.get_provider_name()} request...")
         
         result = self.client.execute_prompt(
             prompt=prompt,
             model=model,
-            timeout=1800  # 30 minute timeout for comprehensive research
+            timeout=1800  # 30 minute timeout
         )
         
         if not result.get("success", False):
-            raise Exception(f"OpenRouter API error: {result.get('error', 'Unknown error')}")
+            raise Exception(f"{self.client.get_provider_name()} API error: {result.get('error', 'Unknown error')}")
         
         print(f"✅ Request completed in {result.get('execution_time', 0):.2f}s")
         print(f"📊 Usage: {result.get('usage', {}).get('total_tokens', 0)} tokens")
@@ -133,7 +125,7 @@ class OpenRouterExecutor:
 class SpecializedAgent:
     """Base class for specialized research agents"""
     
-    def __init__(self, name: str, role_definition: str, instructions: str, executor: OpenRouterExecutor):
+    def __init__(self, name: str, role_definition: str, instructions: str, executor: MultiLLMExecutor):
         self.name = name
         self.role_definition = role_definition
         self.instructions = instructions
@@ -152,10 +144,9 @@ Instructions:
 IMPORTANT: You must follow these instructions exactly and focus only on your specialized role."""
     
     def execute_task(self, task: str, model: Optional[str] = None) -> str:
-        """Execute a research task using OpenRouter"""
+        """Execute a research task using the configured LLM"""
         system_prompt = self.create_system_prompt()
         
-        # Combine system prompt with task
         full_prompt = f"""{system_prompt}
 
 Task: {task}
@@ -168,18 +159,14 @@ Please complete this task according to your role and instructions above."""
 class ResearcherAgent(SpecializedAgent):
     """Specialized agent for information gathering with web search"""
     
-    def __init__(self, executor: OpenRouterExecutor):
+    def __init__(self, executor: MultiLLMExecutor):
         role_definition = """You are in Researcher Mode, an expert information gatherer 
 specialized in discovering, collecting, and analyzing information related to specific research topics."""
         
         instructions = """Your role is to gather and analyze comprehensive information on assigned research topics.
 1. Read any existing research context from research_context.md
 2. Carefully analyze the research prompt to identify ALL dimensions that need investigation
-3. Conduct systematic web research that addresses every aspect mentioned or implied in the prompt:
-   - Search for authoritative sources covering all requested dimensions
-   - Adapt your search strategy based on the specific requirements
-   - Go beyond surface-level information to find detailed insights
-   - Ensure comprehensive coverage of the topic from multiple perspectives
+3. Conduct systematic web research that addresses every aspect mentioned or implied in the prompt
 4. For each search result, fetch and analyze the content
 5. Evaluate sources for credibility, currency, and accuracy
 6. Organize information systematically with proper citations
@@ -187,7 +174,7 @@ specialized in discovering, collecting, and analyzing information related to spe
 8. Format findings with clear headings organized by the dimensions identified
 9. APPEND findings to research_context.md in the Research Findings section
 
-IMPORTANT: Your research scope should be determined by the prompt requirements, not by predefined categories. Be thorough in addressing ALL aspects requested.
+IMPORTANT: Your research scope should be determined by the prompt requirements, not by predefined categories.
 
 You have access to web search and web fetch capabilities. Use them extensively."""
         
@@ -211,10 +198,8 @@ You have access to web search and web fetch capabilities. Use them extensively."
         for query in search_queries:
             print(f"🔎 Searching: {query}")
             try:
-                # Perform web search
                 search_results = self.executor.web_ops.web_search(query)
                 
-                # Fetch and analyze top results
                 for result in search_results[:2]:  # Top 2 results per query
                     try:
                         print(f"📄 Fetching: {result['title']}")
@@ -238,7 +223,6 @@ You have access to web search and web fetch capabilities. Use them extensively."
                 print(f"⚠️ Search failed for '{query}': {e}")
                 continue
         
-        # Compile research findings
         compiled_research = self._compile_research_findings(topic, research_results)
         return compiled_research
     
@@ -268,7 +252,7 @@ You have access to web search and web fetch capabilities. Use them extensively."
 class SynthesizerAgent(SpecializedAgent):
     """Specialized agent for knowledge integration"""
     
-    def __init__(self, executor: OpenRouterExecutor):
+    def __init__(self, executor: MultiLLMExecutor):
         role_definition = """You are in Synthesizer Mode, an expert in knowledge integration 
 specialized in identifying patterns, connections, and insights across diverse research findings."""
         
@@ -288,7 +272,7 @@ specialized in identifying patterns, connections, and insights across diverse re
 class ExpertConsultantAgent(SpecializedAgent):
     """Specialized agent for domain expertise analysis"""
     
-    def __init__(self, executor: OpenRouterExecutor):
+    def __init__(self, executor: MultiLLMExecutor):
         role_definition = """You are in Expert Consultant Mode, a domain specialist who 
 analyzes research findings through the lens of expert knowledge in specific fields."""
         
@@ -307,7 +291,7 @@ analyzes research findings through the lens of expert knowledge in specific fiel
 class FactCheckerAgent(SpecializedAgent):
     """Specialized agent for verification"""
     
-    def __init__(self, executor: OpenRouterExecutor):
+    def __init__(self, executor: MultiLLMExecutor):
         role_definition = """You are in Fact-Checker Mode, a meticulous verification specialist 
 focused on ensuring the accuracy and reliability of research findings."""
         
@@ -327,11 +311,11 @@ focused on ensuring the accuracy and reliability of research findings."""
 class WriterAgent(SpecializedAgent):
     """Specialized agent for technical report generation"""
     
-    def __init__(self, executor: OpenRouterExecutor):
+    def __init__(self, executor: MultiLLMExecutor):
         role_definition = """You are in Writer Mode, an expert communicator specialized in 
 transforming research findings into clear, engaging, and well-structured technical reports."""
         
-        instructions = """Your role is to transform research findings into polished, professional reports with MANDATORY TECHNICAL DEPTH:
+        instructions = """Your role is to transform research findings into polished, professional reports:
 1. Read all sections from research_context.md
 2. Create comprehensive report structure with executive summary, methodology, detailed findings, analysis, and conclusions
 3. Technical Depth Requirements:
@@ -348,10 +332,10 @@ transforming research findings into clear, engaging, and well-structured technic
 
 
 class ResearchManagerWorkflow:
-    """Main orchestrator for the research workflow using OpenRouter"""
+    """Main orchestrator for the research workflow with multi-LLM support"""
     
-    def __init__(self, model: Optional[str] = None, api_key: Optional[str] = None):
-        self.executor = OpenRouterExecutor(model=model, api_key=api_key)
+    def __init__(self, client: LLMClient):
+        self.executor = MultiLLMExecutor(client)
         self.context = ResearchContext()
         
         # Initialize specialized agents
@@ -361,7 +345,7 @@ class ResearchManagerWorkflow:
         self.fact_checker = FactCheckerAgent(self.executor)
         self.writer = WriterAgent(self.executor)
         
-        # Workflow state tracking (manager's persistent context)
+        # Workflow state tracking
         self.current_step = 0
         self.workflow_steps = [
             "initialize",
@@ -372,7 +356,6 @@ class ResearchManagerWorkflow:
             "write_report"
         ]
         
-        # Manager's context preservation
         self.research_topic = ""
         self.workflow_progress = {}
         self.step_summaries = {}
@@ -402,7 +385,7 @@ class ResearchManagerWorkflow:
         
         if self.identified_issues:
             context_summary += "\nIDENTIFIED ISSUES TO ADDRESS:\n"
-            for issue in self.identified_issues[-3:]:  # Last 3 issues
+            for issue in self.identified_issues[-3:]:
                 context_summary += f"- {issue}\n"
         
         return f"""RESEARCH TOPIC: {self.research_topic}
@@ -414,16 +397,15 @@ PROGRESS: Step {self.current_step + 1} of {len(self.workflow_steps)}
 TASK FOR THIS STEP:
 {agent_task}
 
-IMPORTANT: You must read from research_context.md to access all previous work, but use the manager's context above to understand the workflow progress and any issues that need attention."""
+IMPORTANT: You must read from research_context.md to access all previous work."""
     
     def execute_workflow(self, research_topic: str, output_folder: Optional[str] = None) -> str:
         """Execute the complete research workflow"""
         
-        print(f"🔬 Starting OpenRouter Research Workflow: {research_topic}")
+        print(f"🔬 Starting Multi-LLM Research Workflow: {research_topic}")
         print(f"🗂️  Current working directory: {os.getcwd()}")
-        print(f"🗂️  Script directory: {Path(__file__).parent}")
         print(f"🗂️  Output folder: {output_folder}")
-        print(f"🤖 Using model: {self.executor.client.default_model.name}")
+        print(f"🤖 Using {self.executor.client.get_provider_name()} with model: {self.executor.client.default_model.name}")
         
         self.research_topic = research_topic
         
@@ -436,12 +418,9 @@ IMPORTANT: You must read from research_context.md to access all previous work, b
         
         # Step 2: Delegate to Researcher with web search
         print("🔍 Delegating to Researcher with web search capabilities...")
-        
-        # Use the new research method that includes web search
         researcher_result = self.researcher.perform_research(research_topic)
         self.context.append_section("Research Findings", researcher_result)
         
-        # Extract summary for manager's context
         research_summary = f"Completed comprehensive research gathering on {research_topic}"
         self.update_progress("research", research_summary)
         
@@ -490,13 +469,11 @@ Append your verification results to research_context.md in the Verification sect
         # Step 6: Delegate to Writer
         print("✍️ Delegating to Writer...")
         
-        # Use current working directory if no output folder specified
         if output_folder is None:
             output_path = Path.cwd()
         else:
             output_path = Path(output_folder)
         
-        # Create output folder if it doesn't exist
         output_path.mkdir(exist_ok=True)
         
         write_task = f"""Create a comprehensive technical report in MARKDOWN FORMAT using all sections from research_context.md for: {research_topic}
@@ -512,16 +489,10 @@ CRITICAL: The entire report must be in proper Markdown format with:
 REQUIRED CONTENT:
 - Executive summary that addresses ALL dimensions covered in the research
 - Detailed methodology section explaining research approach
-- Comprehensive findings organized by the dimensions that were researched:
-  * Each dimension should have appropriate depth and detail
-  * Include data, metrics, and evidence where applicable
-  * Use tables, lists, and formatting for clarity
-  * Provide balanced coverage of different perspectives
+- Comprehensive findings organized by the dimensions that were researched
 - In-depth analysis that synthesizes findings across all dimensions
 - Implications and recommendations based on the complete picture
 - Comprehensive references with proper markdown links
-
-IMPORTANT: The report structure and emphasis should reflect the actual research conducted and the dimensions that were investigated. Do not force a technical-only perspective if the research covered broader aspects.
 
 The output must be publication-ready markdown that renders beautifully in any markdown viewer.
 Do NOT save the report yourself - just return the complete markdown content."""
@@ -529,93 +500,114 @@ Do NOT save the report yourself - just return the complete markdown content."""
         writer_result = self.writer.execute_task(write_task)
         self.context.append_section("Final Report", writer_result)
         
-        # Save final report to specified folder
-        # Clean the research topic to create a valid filename
+        # Save final report
         import re
-        clean_topic = re.sub(r'[^\w\s-]', '', research_topic)  # Remove special chars
-        clean_topic = re.sub(r'[-\s]+', '_', clean_topic)  # Replace spaces/hyphens with underscores
-        clean_topic = clean_topic.strip('_').lower()  # Remove leading/trailing underscores
+        clean_topic = re.sub(r'[^\w\s-]', '', research_topic)
+        clean_topic = re.sub(r'[-\s]+', '_', clean_topic)
+        clean_topic = clean_topic.strip('_').lower()
         
-        # Limit filename length to avoid filesystem issues
         max_length = 100
         if len(clean_topic) > max_length:
             clean_topic = clean_topic[:max_length].rstrip('_')
         
-        report_filename = f"{clean_topic}_research_report_openrouter.md"
+        provider_name = self.executor.client.get_provider_name().lower()
+        report_filename = f"{clean_topic}_research_report_{provider_name}.md"
         report_path = output_path / report_filename
         
         with open(report_path, 'w') as f:
             f.write(f"# Research Report: {research_topic}\n\n")
             f.write(writer_result)
         
-        # Clean up research_context.md after report generation
+        # Clean up research_context.md
         try:
             research_context_path = self.context.file_path
             if research_context_path.exists():
                 research_context_path.unlink()
                 print(f"🧹 Cleaned up research context file: {research_context_path}")
-            else:
-                print(f"ℹ️  Research context file not found for cleanup: {research_context_path}")
         except Exception as e:
             print(f"⚠️  Warning: Could not delete research_context.md: {e}")
-            print(f"   File path: {self.context.file_path}")
-            print("   Please manually delete this file to prevent bloat")
         
-        print("✅ OpenRouter research workflow completed!")
+        print("✅ Multi-LLM research workflow completed!")
         print(f"📄 Final report saved to: {report_path}")
         
         return str(report_path)
 
 
 def main():
-    """Main entry point for the research manager workflow"""
+    """Main entry point for the multi-LLM research manager workflow"""
     import argparse
     from dotenv import load_dotenv
     
-    # Get the original working directory from the wrapper script
+    # Get the original working directory
     original_cwd = os.environ.get('ORIGINAL_PWD', os.getcwd())
     
-    # Change to the original working directory for the duration of the script
     if original_cwd != os.getcwd():
         print(f"🔄 Changing working directory from {os.getcwd()} to {original_cwd}")
         os.chdir(original_cwd)
     
     load_dotenv()
     
-    parser = argparse.ArgumentParser(description="Research Manager Workflow - OpenRouter Integration")
+    parser = argparse.ArgumentParser(description="Research Manager Workflow - Multi-LLM Support")
     parser.add_argument("topic", help="Research topic to investigate")
     parser.add_argument("--output", "-o", default=None, help="Output folder for reports (default: current directory)")
-    parser.add_argument("--model", help="OpenRouter model to use (e.g., anthropic/claude-3.5-sonnet)")
-    parser.add_argument("--api-key", help="OpenRouter API key (or set OPENROUTER_API_KEY env var)")
-    parser.add_argument("--list-models", action="store_true", help="List recommended models for research workflow")
+    parser.add_argument("--provider", "-p", choices=["openrouter", "lmstudio"], default="openrouter", 
+                       help="LLM provider to use (default: openrouter)")
+    parser.add_argument("--model", help="Model to use (provider-specific)")
+    parser.add_argument("--api-key", help="API key for OpenRouter (or set OPENROUTER_API_KEY env var)")
+    parser.add_argument("--lmstudio-url", help="LM Studio API URL (default: http://localhost:1234/v1)")
+    parser.add_argument("--list-models", action="store_true", help="List available models for the provider")
     
     args = parser.parse_args()
     
-    # List models if requested
-    if args.list_models:
-        print("Recommended OpenRouter Models for Research Workflow:")
-        print("=" * 60)
-        models = OpenRouterModels.get_recommended_models(WorkflowType.RESEARCH)
-        for model in models:
-            print(f"• {model.name}")
-            print(f"  {model.description}")
-            print(f"  Cost: ${model.cost_per_1k_tokens:.4f}/1K tokens")
-            print(f"  Context: {model.context_window:,} tokens")
-            print()
-        return
-    
-    # Get OpenRouter API key from args or environment
-    api_key = args.api_key or os.getenv("OPENROUTER_API_KEY")
-    if not api_key:
-        print("❌ Error: OpenRouter API key required.")
-        print("   Set OPENROUTER_API_KEY environment variable or use --api-key")
-        return 1
-    
-    # Initialize and run workflow
-    workflow = ResearchManagerWorkflow(model=args.model, api_key=api_key)
-    
+    # Initialize the appropriate client
     try:
-        # Now that we're in the correct working directory, use args.output directly
+        if args.provider == "openrouter":
+            api_key = args.api_key or os.getenv("OPENROUTER_API_KEY")
+            if not api_key:
+                print("❌ Error: OpenRouter API key required.")
+                print("   Set OPENROUTER_API_KEY environment variable or use --api-key")
+                return 1
+            
+            client = OpenRouterClient(
+                api_key=api_key,
+                workflow_type=WorkflowType.RESEARCH
+            )
+            
+            # Override model if specified
+            if args.model:
+                from clients.openrouter_client import ModelConfig
+                client.default_model = ModelConfig(
+                    name=args.model,
+                    max_tokens=8192,
+                    context_window=200000,
+                    cost_per_1k_tokens=0.003,
+                    best_for=[WorkflowType.RESEARCH],
+                    description=f"User-specified model: {args.model}"
+                )
+        
+        elif args.provider == "lmstudio":
+            client = LMStudioClient(
+                base_url=args.lmstudio_url,
+                workflow_type=WorkflowType.RESEARCH,
+                model_name=args.model
+            )
+        
+        # List models if requested
+        if args.list_models:
+            print(f"Available {args.provider.upper()} Models for Research Workflow:")
+            print("=" * 60)
+            models = client.get_available_models()
+            for model in models:
+                print(f"• {model['name']}")
+                print(f"  {model['description']}")
+                if args.provider == "openrouter":
+                    print(f"  Cost: ${model['cost_per_1k_tokens']:.4f}/1K tokens")
+                print(f"  Context: {model['context_window']:,} tokens")
+                print()
+            return
+        
+        # Initialize and run workflow
+        workflow = ResearchManagerWorkflow(client)
         report_path = workflow.execute_workflow(args.topic, args.output)
         print("\n🎉 Research completed successfully!")
         print(f"📊 Report available at: {report_path}")

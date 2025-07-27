@@ -7,31 +7,12 @@ import os
 import json
 import time
 from typing import Dict, List, Optional, Any, Union
-from dataclasses import dataclass
-from enum import Enum
 import logging
 from openai import OpenAI
 
+from .llm_client import LLMClient, WorkflowType, ModelConfig
+
 logger = logging.getLogger(__name__)
-
-
-class WorkflowType(Enum):
-    """Workflow types with optimized model recommendations."""
-    RESEARCH = "research"
-    CODE_REVIEW = "code_review" 
-    JIRA_TASK = "jira_task"
-    GENERAL = "general"
-
-
-@dataclass
-class ModelConfig:
-    """Configuration for specific models with workflow optimization."""
-    name: str
-    max_tokens: int
-    context_window: int
-    cost_per_1k_tokens: float
-    best_for: List[WorkflowType]
-    description: str
 
 
 class OpenRouterModels:
@@ -104,7 +85,7 @@ class OpenRouterModels:
         return recommendations.get(workflow_type, cls.CLAUDE_HAIKU)
 
 
-class OpenRouterClient:
+class OpenRouterClient(LLMClient):
     """
     OpenRouter API client that replaces Claude Code CLI functionality.
     Provides compatibility with existing workflow interfaces.
@@ -126,22 +107,20 @@ class OpenRouterClient:
             site_name: Your site name for OpenRouter leaderboards  
             workflow_type: Type of workflow for model optimization
         """
+        super().__init__(workflow_type)
+        
         self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
         if not self.api_key:
             raise ValueError("OpenRouter API key required. Set OPENROUTER_API_KEY env var or pass api_key parameter.")
         
         self.site_url = site_url or os.getenv("OPENROUTER_SITE_URL", "https://github.com/agent-flows")
         self.site_name = site_name or os.getenv("OPENROUTER_SITE_NAME", "Agent Flows")
-        self.workflow_type = workflow_type
         
         # Initialize OpenAI client with OpenRouter endpoint
         self.client = OpenAI(
             base_url="https://openrouter.ai/api/v1",
             api_key=self.api_key
         )
-        
-        # Get default model for workflow type
-        self.default_model = OpenRouterModels.get_default_model(workflow_type)
         
         logger.info(f"OpenRouter client initialized for {workflow_type.value} with model {self.default_model.name}")
 
@@ -265,6 +244,10 @@ class OpenRouterClient:
         except Exception as e:
             logger.error(f"Error fetching models: {str(e)}")
             return []
+    
+    def get_default_model(self, workflow_type: WorkflowType) -> ModelConfig:
+        """Get the default recommended model for a workflow type."""
+        return OpenRouterModels.get_default_model(workflow_type)
 
     def estimate_cost(self, prompt: str, model: Optional[str] = None) -> Dict[str, float]:
         """Estimate cost for a prompt execution."""
