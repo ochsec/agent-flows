@@ -282,8 +282,9 @@ def main():
     parser.add_argument("--base", "-b", default="main", help="Base branch to compare against")
     parser.add_argument("--context", "-c", help="Additional context for the review")
     parser.add_argument("--output", "-o", help="Output file for the review report")
-    parser.add_argument("--provider", "-p", choices=["openrouter", "lmstudio"], default="openrouter",
-                       help="LLM provider to use (default: openrouter)")
+    default_provider = os.getenv("DEFAULT_LLM_PROVIDER", "openrouter")
+    parser.add_argument("--provider", "-p", choices=["openrouter", "lmstudio"], default=default_provider,
+                       help=f"LLM provider to use (default: {default_provider})")
     parser.add_argument("--model", "-m", help="Specific model to use")
     parser.add_argument("--api-key", help="API key for OpenRouter")
     parser.add_argument("--lmstudio-url", help="LM Studio API URL (default: http://localhost:1234/v1)")

@@ -550,8 +550,9 @@ def main():
     parser = argparse.ArgumentParser(description="Research Manager Workflow - Multi-LLM Support")
     parser.add_argument("topic", help="Research topic to investigate")
     parser.add_argument("--output", "-o", default=None, help="Output folder for reports (default: current directory)")
-    parser.add_argument("--provider", "-p", choices=["openrouter", "lmstudio"], default="openrouter", 
-                       help="LLM provider to use (default: openrouter)")
+    default_provider = os.getenv("DEFAULT_LLM_PROVIDER", "openrouter")
+    parser.add_argument("--provider", "-p", choices=["openrouter", "lmstudio"], default=default_provider, 
+                       help=f"LLM provider to use (default: {default_provider})")
     parser.add_argument("--model", help="Model to use (provider-specific)")
     parser.add_argument("--api-key", help="API key for OpenRouter (or set OPENROUTER_API_KEY env var)")
     parser.add_argument("--lmstudio-url", help="LM Studio API URL (default: http://localhost:1234/v1)")
