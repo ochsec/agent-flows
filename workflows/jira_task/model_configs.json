@@ -1,0 +1,131 @@
+{
+  "ollama_models": {
+    "codellama:7b": {
+      "provider": "ollama",
+      "model": "codellama:7b",
+      "base_url": "http://localhost:11434",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "Meta's Code Llama 7B - Good for general coding tasks"
+    },
+    "codellama:13b": {
+      "provider": "ollama", 
+      "model": "codellama:13b",
+      "base_url": "http://localhost:11434",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "Meta's Code Llama 13B - Better reasoning, slower"
+    },
+    "deepseek-coder:6.7b": {
+      "provider": "ollama",
+      "model": "deepseek-coder:6.7b", 
+      "base_url": "http://localhost:11434",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "DeepSeek Coder 6.7B - Excellent for coding tasks"
+    },
+    "deepseek-coder:33b": {
+      "provider": "ollama",
+      "model": "deepseek-coder:33b",
+      "base_url": "http://localhost:11434", 
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "DeepSeek Coder 33B - High quality code generation"
+    },
+    "mistral:7b": {
+      "provider": "ollama",
+      "model": "mistral:7b",
+      "base_url": "http://localhost:11434",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "Mistral 7B - Fast and efficient"
+    },
+    "llama2:13b": {
+      "provider": "ollama",
+      "model": "llama2:13b",
+      "base_url": "http://localhost:11434",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "Llama 2 13B - Good general purpose model"
+    },
+    "magicoder:7b": {
+      "provider": "ollama",
+      "model": "magicoder:7b",
+      "base_url": "http://localhost:11434",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "OSS-Instruct MagiCoder 7B - Specialized for code"
+    },
+    "starcoder2:7b": {
+      "provider": "ollama",
+      "model": "starcoder2:7b", 
+      "base_url": "http://localhost:11434",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "StarCoder2 7B - Code completion and generation"
+    }
+  },
+  "lmstudio_models": {
+    "codellama-7b-instruct": {
+      "provider": "lmstudio",
+      "model": "TheBloke/CodeLlama-7B-Instruct-GGUF",
+      "base_url": "http://localhost:1234",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "Code Llama 7B Instruct via LMStudio"
+    },
+    "deepseek-coder-6.7b": {
+      "provider": "lmstudio",
+      "model": "TheBloke/deepseek-coder-6.7b-instruct-GGUF",
+      "base_url": "http://localhost:1234",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "DeepSeek Coder 6.7B via LMStudio"
+    },
+    "magicoder-s-ds-6.7b": {
+      "provider": "lmstudio",
+      "model": "TheBloke/Magicoder-S-DS-6.7B-GGUF",
+      "base_url": "http://localhost:1234",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "MagiCoder S DS 6.7B via LMStudio"
+    }
+  },
+  "openai_compatible": {
+    "local-gpt": {
+      "provider": "openai_compatible",
+      "model": "gpt-3.5-turbo",
+      "base_url": "http://localhost:8000",
+      "api_key": "your-api-key-here",
+      "temperature": 0.1,
+      "max_tokens": 4000,
+      "description": "Local OpenAI-compatible API"
+    }
+  },
+  "comparison_sets": {
+    "coding_specialists": [
+      "codellama:7b",
+      "deepseek-coder:6.7b", 
+      "magicoder:7b",
+      "starcoder2:7b"
+    ],
+    "size_comparison": [
+      "codellama:7b",
+      "codellama:13b",
+      "deepseek-coder:6.7b",
+      "deepseek-coder:33b"
+    ],
+    "all_7b": [
+      "codellama:7b",
+      "deepseek-coder:6.7b",
+      "mistral:7b", 
+      "magicoder:7b",
+      "starcoder2:7b"
+    ],
+    "heavy_hitters": [
+      "codellama:13b",
+      "deepseek-coder:33b",
+      "llama2:13b"
+    ]
+  }
+}

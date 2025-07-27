@@ -9,6 +9,10 @@ from .config import JiraConfig, load_jira_config, create_sample_env_file
 from .jira_client import JiraClient, JiraApiError
 from .git_integration import GitIntegration, GitError
 from .jira_task import JiraWorkflow
+from .task_executor import TaskExecutor
+from .jira_fetcher import JiraIssueFetcher
+from .task_executor_lmstudio import LMStudioTaskExecutor
+from .task_executor_lmstudio_tools import LMStudioTaskExecutorWithTools
 
 # Phase 2 Enhanced Features
 try:
@@ -64,7 +68,10 @@ __all__ = [
     "JiraApiError",
     "GitIntegration", 
     "GitError",
-    "JiraWorkflow"
+    "JiraWorkflow",
+    "TaskExecutor",
+    "JiraIssueFetcher",
+    "LMStudioTaskExecutor"
 ]
 
 # Add enhanced features to exports if available

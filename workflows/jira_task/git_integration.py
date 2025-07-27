@@ -176,6 +176,57 @@ class GitIntegration:
         print(f"Created and switched to branch: {branch_name}")
         return branch_name
     
+    def checkout_branch(self, branch_name: str) -> None:
+        """
+        Checkout an existing branch
+        
+        Args:
+            branch_name: Name of branch to checkout
+            
+        Raises:
+            GitError: If checkout fails
+        """
+        self._run_git_command(['checkout', branch_name], check_output=False)
+    
+    def create_branch_simple(self, branch_name: str, base_branch: str = "main") -> str:
+        """
+        Create a simple branch with the given name
+        
+        Args:
+            branch_name: Name of branch to create
+            base_branch: Base branch to create from (default: main)
+            
+        Returns:
+            Created branch name
+            
+        Raises:
+            GitError: If branch creation fails
+        """
+        # Check if branch already exists
+        if self.branch_exists(branch_name):
+            print(f"Branch {branch_name} already exists, switching to it")
+            self.checkout_branch(branch_name)
+            return branch_name
+        
+        # Ensure we're on the base branch
+        try:
+            self.checkout_branch(base_branch)
+        except GitError:
+            # Try 'master' as fallback
+            if base_branch == "main":
+                try:
+                    self.checkout_branch('master')
+                except GitError:
+                    raise GitError("Could not find 'main' or 'master' branch")
+            else:
+                raise GitError(f"Base branch '{base_branch}' not found")
+        
+        # Create and checkout new branch
+        self._run_git_command(['checkout', '-b', branch_name], check_output=False)
+        
+        print(f"Created and switched to branch: {branch_name}")
+        return branch_name
+    
     def get_repo_status(self) -> Dict[str, List[str]]:
         """
         Get git repository status
