@@ -7,6 +7,26 @@ from typing import Optional, List, Dict, Any
 class FileOperations:
     """File operations tool class for Claude Code tools implementation."""
     
+    def write(self, file_path: str, content: str) -> None:
+        """
+        Write content to a file.
+        
+        Args:
+            file_path: The absolute path to the file to write
+            content: The content to write to the file
+            
+        Raises:
+            ValueError: If path is not absolute
+        """
+        if not os.path.isabs(file_path):
+            raise ValueError("file_path must be absolute")
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+    
     def read(self, file_path: str, offset: Optional[int] = None, limit: Optional[int] = None) -> str:
         """
         Read file contents.
