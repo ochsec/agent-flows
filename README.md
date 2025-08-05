@@ -1,3 +1,5 @@
+***This project has been migrated to https://codeberg.org/ochsec/agent-flows.git***
+
 # Agent Flows
 
 A collection of my frequently-used agent workflows and agent modes.
